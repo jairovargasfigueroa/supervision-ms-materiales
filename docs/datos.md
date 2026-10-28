@@ -39,6 +39,7 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 | orden_compra_id | string | ref Finanzas; en ingresos de una compra (capa 2) |
 | periodo | string | `AAAA-MM` |
 | cerrado | bool | true cuando el periodo se cerró |
+| supera_stock | bool | la salida superó el stock que había (alerta) |
 | registrado_por | string | ref Keycloak |
 | registrado_en | date | |
 | nota_remision | `{ numero, clave_foto }` | embebido, opcional en ingresos |
@@ -50,6 +51,19 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 | planilla_id | string | ref Obras |
 | estado | string | `CERRADO`, `REABIERTO` |
 | cerrado_en | date | |
+
+### obra_acceso
+| Campo | Tipo | Notas |
+|---|---|---|
+| _id | string | `obraId` (ref Obras) |
+| nombre | string | |
+| residente_id | string | ref Keycloak |
+| maestro_id | string | ref Keycloak |
+| almacenero_id | string | ref Keycloak |
+| cliente_id | string | ref Keycloak |
+| actualizado_en | date | |
+
+Copia de las asignaciones de cada obra; llega con `ObraRegistrada`. Sirve para validar quién puede ver o registrar en cada obra.
 
 ### outbox_evento
 | Campo | Tipo | Notas |
