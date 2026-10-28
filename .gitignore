@@ -1,0 +1,17 @@
+# Dependencias y compilado
+node_modules/
+dist/
+coverage/
+
+# Logs
+*.log
+
+# Configuración local (contraseñas)
+.env
+.env.*
+
+# Editores
+.idea/
+.vscode/
+!.env.example
+*.tsbuildinfo
