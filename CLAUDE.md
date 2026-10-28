@@ -50,6 +50,7 @@ src/<modulo>/
 
 ## Documentación
 
+- `docs/estructura.md`: **librerías permitidas y estructura exacta de carpetas y archivos. Obligatorio leerlo antes de escribir código.**
 - `docs/servicio.md`: responsabilidades, casos de uso y qué no hace.
 - `docs/datos.md`: colecciones.
 - `docs/contratos.md`: REST, eventos y herramientas MCP.
