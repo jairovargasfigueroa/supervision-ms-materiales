@@ -51,7 +51,22 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 | estado | string | `CERRADO`, `REABIERTO` |
 | cerrado_en | date | |
 
-Pendiente de definir: colecciones para outbox y mensajes procesados (mismo patrón que en Obras y Finanzas).
+### outbox_evento
+| Campo | Tipo | Notas |
+|---|---|---|
+| _id | string (uuid) | PK; es el `id` del mensaje |
+| tipo | string | |
+| payload | objeto | sobre completo del mensaje |
+| creado_en | date | |
+| publicado_en | date | nulo hasta publicarse |
+
+Se escribe en la misma transacción de MongoDB que el movimiento o el cierre (requiere MongoDB como *replica set*, también en desarrollo).
+
+### mensaje_procesado
+| Campo | Tipo | Notas |
+|---|---|---|
+| _id | string (uuid) | `id` del mensaje recibido |
+| procesado_en | date | |
 
 ## Índices previstos
 

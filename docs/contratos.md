@@ -1,6 +1,6 @@
 # Materiales: contratos
 
-**Estado: pendiente.** Aquí va la parte de los contratos generales (`docs/contratos/` de la carpeta general) que toca a este servicio. Lo de abajo es lo conocido hasta ahora; los detalles se definen en el diseño de cada funcionalidad.
+**Estado:** aquí va la parte de los contratos generales (`docs/contratos/` de la carpeta general) que toca a este servicio. Lo de abajo es lo conocido hasta ahora; los detalles se definen en el diseño de cada funcionalidad.
 
 ## REST que expone
 
