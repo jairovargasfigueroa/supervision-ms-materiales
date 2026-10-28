@@ -8,7 +8,7 @@ Fuente para este servicio. La copia general está en `docs/contratos/` de la car
 Sin token · `200 {"estado":"ok"}`
 
 ### GET /materiales?busqueda=&soloActivos= · 002, 003, 006
-Roles: todos los internos (`admin`, `residente`, `gerente`, `maestro`, `almacenero`).
+Roles: todos los internos (`admin`, `residente`, `gerente`, `maestro`, `almacenero`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `codigo asc`. Cada elemento:
 `[{ "id", "codigo": "CEM-IP30", "nombre": "Cemento IP-30", "tipo": "CEMENTO", "unidad": "bolsa", "unidadPlural": "bolsas", "precioReferencial": 62.00, "activo": true, "atributos": [{ "nombre": "peso", "valor": "50 kg" }] }]`
 
 ### POST /materiales · 003
@@ -29,7 +29,7 @@ Roles: `admin`. Recibe `{ "minimo": 100 }`. Devuelve `200` con la fila de stock.
 Errores: `404 OBRA_NO_ENCONTRADA` · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO`.
 
 ### POST /movimientos · 004
-Roles: `almacenero` asignado, `admin`.
+Roles: `almacenero` asignado.
 ```json
 {
   "id": "uuid generado en el celular", "obraId": "uuid", "materialId": "id",
@@ -42,10 +42,10 @@ Devuelve `201` (o `200` si el `id` ya existía) `{ "id", "periodo": "2026-11", "
 Errores: `400` · `403` · `404 OBRA_NO_ENCONTRADA` · `422 MATERIAL_INACTIVO` · `409 PERIODO_CERRADO`.
 
 ### GET /obras/{obraId}/movimientos?periodo= · 004
-Roles: internos que pueden ver la obra. `[{ "id", "materialId", "tipo", "cantidad", "partidaId", "periodo", "superaStock", "cerrado", "registradoPor", "registradoEn" }]`
+Roles: internos que pueden ver la obra. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `registradoEn desc`. Cada elemento: `[{ "id", "materialId", "tipo", "cantidad", "partidaId", "periodo", "superaStock", "cerrado", "registradoPor", "registradoEn" }]`
 
 ### GET /obras/{obraId}/consumos?periodo=AAAA-MM · 006
-Roles: `admin`, `residente`, `gerente`. `[{ "partidaId", "materialId", "cantidad" }]` (suma de salidas).
+Roles: `admin`, `gerente` y `residente` asignado (si no ve la obra: `404 OBRA_NO_ENCONTRADA`). `[{ "partidaId", "materialId", "cantidad" }]` (suma de salidas).
 
 ### GET /stock/resumen?obraIds=a,b,c · 009
 Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (solo obras visibles).
