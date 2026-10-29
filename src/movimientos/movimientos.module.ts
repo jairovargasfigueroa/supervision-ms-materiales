@@ -5,6 +5,7 @@ import { CatalogoModule } from '../catalogo/catalogo.module.js';
 import { CierresModule } from '../cierres/cierres.module.js';
 import { MensajeriaModule } from '../compartido/infraestructura/mensajeria/mensajeria.module.js';
 import { StockModule } from '../stock/stock.module.js';
+import { ConsultarConsumosCasoUso } from './aplicacion/casos-uso/consultar-consumos.caso-uso.js';
 import { ListarMovimientosCasoUso } from './aplicacion/casos-uso/listar-movimientos.caso-uso.js';
 import { RegistrarMovimientoCasoUso } from './aplicacion/casos-uso/registrar-movimiento.caso-uso.js';
 import { MOVIMIENTO_REPOSITORIO } from './aplicacion/puertos/movimiento.repositorio.js';
@@ -35,6 +36,7 @@ import { MovimientosController } from './presentacion/movimientos.controller.js'
     { provide: MOVIMIENTO_REPOSITORIO, useClass: MovimientoRepositorioMongo },
     RegistrarMovimientoCasoUso,
     ListarMovimientosCasoUso,
+    ConsultarConsumosCasoUso,
   ],
 })
 export class MovimientosModule {}

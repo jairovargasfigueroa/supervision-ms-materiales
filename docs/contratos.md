@@ -61,6 +61,8 @@ Roles: internos que pueden ver la obra. Paginado (convenciones): `pagina`, `tama
 
 ### GET /obras/{obraId}/consumos?periodo=AAAA-MM · 006
 Roles: `admin`, `gerente` y `residente` asignado (si no ve la obra: `404 OBRA_NO_ENCONTRADA`). `[{ "partidaId", "materialId", "cantidad" }]` (suma de salidas).
+- `periodo`: `AAAA-MM`, obligatorio. Solo cuentan las **salidas** de la obra con ese `periodo` (los ingresos y los otros periodos no); un elemento por cada par partida y material con salidas, ordenados por `partidaId` y luego `materialId`; `cantidad` con hasta 3 decimales. Sin salidas en el periodo: `[]`.
+- Errores, en este orden: `400 DATOS_INVALIDOS` (`periodo` ausente o que no es `AAAA-MM`) · `403 SIN_PERMISO` (`maestro`, `almacenero` o `cliente`) · `404 OBRA_NO_ENCONTRADA` (la obra no está en `obra_acceso` o el usuario no la ve; también para `admin`).
 
 ### GET /stock/resumen?obraIds=a,b,c · 009
 Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (solo obras visibles).

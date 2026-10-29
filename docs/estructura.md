@@ -71,17 +71,19 @@ src/
       cierre-periodo.schema.ts (_id obraId:periodo), cierre-periodo.repositorio.mongo.ts
     cierres.module.ts
   movimientos/                     # ingresos y salidas (movimiento), 004
-    dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado, datosMovimientoRegistrado)
+    dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado, datosMovimientoRegistrado),
+                    consumo.ts (ConsumoPartida: suma de salidas por partida y material, 006)
     aplicacion/
-      puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe; ORDENES_MOVIMIENTO)
+      puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe; ORDENES_MOVIMIENTO; sumarSalidas)
       casos-uso/    registrar-movimiento.caso-uso.ts (transacción, idempotencia, reintento si el stock choca, outbox StockBajo y MovimientoRegistrado),
-                    listar-movimientos.caso-uso.ts (paginado, exigirVer)
+                    listar-movimientos.caso-uso.ts (paginado, exigirVer), consultar-consumos.caso-uso.ts (006, exigirVer)
     infraestructura/
       movimiento.schema.ts (supera_stock, cerrado; índices por obra y periodo, material, partida y periodo),
-      movimiento.repositorio.mongo.ts
+      movimiento.repositorio.mongo.ts (sumarSalidas: agregación $match obra + periodo + SALIDA, $group por partida y material)
     presentacion/
-      movimientos.controller.ts (POST /movimientos: 201 o 200 si es repetido; GET /obras/{obraId}/movimientos), dto/registrar-movimiento.dto.ts,
-      dto/movimiento-registrado.respuesta.ts, dto/listar-movimientos.dto.ts, dto/movimiento.respuesta.ts
+      movimientos.controller.ts (POST /movimientos: 201 o 200 si es repetido; GET /obras/{obraId}/movimientos; GET /obras/{obraId}/consumos),
+      dto/registrar-movimiento.dto.ts, dto/movimiento-registrado.respuesta.ts, dto/listar-movimientos.dto.ts, dto/movimiento.respuesta.ts,
+      dto/consultar-consumos.dto.ts, dto/consumo.respuesta.ts
     movimientos.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
@@ -98,6 +100,7 @@ test/
   outbox.e2e-spec.ts               # Outbox.agregar (en transacción) y OutboxPublicador (orden, propiedades, sin conexión, reintento) con mongodb-memory-server
   acceso-obra.e2e-spec.ts          # consumidor de ObraRegistrada (inbox, reintentos, fallidos) y AccesoObraServicio con mongodb-memory-server y CanalPrueba
   movimientos.e2e-spec.ts          # POST /movimientos y GET /obras/{id}/movimientos: stock, idempotencia, periodo cerrado, acceso, outbox
+  consumos.e2e-spec.ts             # GET /obras/{id}/consumos: solo salidas del periodo, 400 sin periodo, 403 por rol, 404 por acceso
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 
