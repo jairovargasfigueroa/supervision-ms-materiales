@@ -9,7 +9,8 @@ export const ENCABEZADO_REQUEST_ID = 'X-Request-Id';
 const REQUEST_ID_VALIDO = /^[A-Za-z0-9._:-]{1,128}$/;
 
 /**
- * Usa el `X-Request-Id` que llega (o genera un UUID), lo devuelve en la respuesta y registra
+ * Usa el `X-Request-Id` que llega (o genera un UUID), lo devuelve en la respuesta junto con los encabezados
+ * de seguridad, y registra
  * cada petición con él. No registra encabezados (token) ni cuerpos.
  */
 @Injectable()
@@ -26,6 +27,9 @@ export class RequestIdMiddleware implements NestMiddleware {
       recibido && REQUEST_ID_VALIDO.test(recibido) ? recibido : randomUUID();
     solicitud.requestId = requestId;
     respuesta.setHeader(ENCABEZADO_REQUEST_ID, requestId);
+    // Encabezados de seguridad de las convenciones («Seguridad»)
+    respuesta.setHeader('X-Content-Type-Options', 'nosniff');
+    respuesta.setHeader('Referrer-Policy', 'no-referrer');
 
     const inicio = performance.now();
     respuesta.on('finish', () => {
