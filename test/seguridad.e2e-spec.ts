@@ -112,6 +112,12 @@ describe('Salud y token (e2e)', () => {
     });
   });
 
+  it('envía los encabezados de seguridad', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/salud');
+    expect(respuesta.headers['x-content-type-options']).toBe('nosniff');
+    expect(respuesta.headers['referrer-policy']).toBe('no-referrer');
+  });
+
   it('devuelve el X-Request-Id recibido', async () => {
     const respuesta = await request(app.getHttpServer())
       .get('/salud')
