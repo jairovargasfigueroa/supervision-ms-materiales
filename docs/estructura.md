@@ -103,6 +103,7 @@ test/
   acceso-obra.e2e-spec.ts          # consumidor de ObraRegistrada (inbox, reintentos, fallidos) y AccesoObraServicio con mongodb-memory-server y CanalPrueba
   movimientos.e2e-spec.ts          # POST /movimientos y GET /obras/{id}/movimientos: stock, idempotencia, periodo cerrado, acceso, outbox
   consumos.e2e-spec.ts             # GET /obras/{id}/consumos: solo salidas del periodo, 400 sin periodo, 403 por rol, 404 por acceso
+  stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 
