@@ -38,7 +38,7 @@ export class CanalPrueba implements CanalMensajeria {
 export function sobrePrueba(
   tipo: string,
   datos: Record<string, unknown>,
-  id = crypto.randomUUID(),
+  id: string = crypto.randomUUID(),
 ): Record<string, unknown> {
   return {
     id,

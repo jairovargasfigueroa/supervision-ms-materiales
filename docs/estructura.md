@@ -54,6 +54,7 @@ test/
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
   catalogo.e2e-spec.ts             # API completa con mongodb-memory-server
+  acceso-obra.e2e-spec.ts          # consumidor de ObraRegistrada (inbox, reintentos, fallidos) y AccesoObraServicio con mongodb-memory-server y CanalPrueba
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 
