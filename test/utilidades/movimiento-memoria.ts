@@ -9,6 +9,8 @@ import {
   type MovimientoRepositorio,
   type OrdenMovimiento,
 } from '../../src/movimientos/aplicacion/puertos/movimiento.repositorio.js';
+import { sumarCantidades } from '../../src/compartido/dominio/cantidad.js';
+import type { ConsumoPartida } from '../../src/movimientos/dominio/consumo.js';
 import type { Movimiento } from '../../src/movimientos/dominio/movimiento.js';
 
 /** Repositorio de `movimiento` en memoria para las pruebas unitarias (`id` único). */
@@ -48,6 +50,28 @@ export class MovimientoRepositorioMemoria implements MovimientoRepositorio {
       pagina: criterios.pagina,
       tamano: criterios.tamano,
     });
+  }
+
+  sumarSalidas(obraId: string, periodo: string): Promise<ConsumoPartida[]> {
+    const sumas = new Map<string, ConsumoPartida>();
+    for (const m of this.movimientos.values()) {
+      if (m.obraId !== obraId || m.periodo !== periodo) continue;
+      if (m.tipo !== 'SALIDA' || m.partidaId === null) continue;
+      const clave = `${m.partidaId}\u0000${m.materialId}`;
+      const previa = sumas.get(clave)?.cantidad ?? 0;
+      sumas.set(clave, {
+        partidaId: m.partidaId,
+        materialId: m.materialId,
+        cantidad: sumarCantidades(previa, m.cantidad),
+      });
+    }
+    return Promise.resolve(
+      [...sumas.values()].sort(
+        (a, b) =>
+          a.partidaId.localeCompare(b.partidaId) ||
+          a.materialId.localeCompare(b.materialId),
+      ),
+    );
   }
 }
 

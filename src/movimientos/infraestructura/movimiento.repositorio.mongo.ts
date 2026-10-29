@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model, QueryFilter, SortOrder } from 'mongoose';
+import type { Model, QueryFilter, SortOrder, Types } from 'mongoose';
+import { redondearCantidad } from '../../compartido/dominio/cantidad.js';
 import type {
   CriteriosPagina,
   Pagina,
@@ -16,6 +17,7 @@ import {
   type MovimientoRepositorio,
   type OrdenMovimiento,
 } from '../aplicacion/puertos/movimiento.repositorio.js';
+import type { ConsumoPartida } from '../dominio/consumo.js';
 import type { Movimiento, TipoMovimiento } from '../dominio/movimiento.js';
 import { MovimientoDocumento } from './movimiento.schema.js';
 
@@ -64,6 +66,33 @@ export class MovimientoRepositorioMongo implements MovimientoRepositorio {
       pagina: criterios.pagina,
       tamano: criterios.tamano,
     };
+  }
+
+  async sumarSalidas(
+    obraId: string,
+    periodo: string,
+  ): Promise<ConsumoPartida[]> {
+    // Usa el índice `por_obra_periodo`; `$sum` de Decimal128 da una suma exacta.
+    const grupos = await this.modelo
+      .aggregate<{
+        _id: { partida_id: string; material_id: string };
+        cantidad: Types.Decimal128;
+      }>([
+        { $match: { obra_id: obraId, periodo, tipo: 'SALIDA' } },
+        {
+          $group: {
+            _id: { partida_id: '$partida_id', material_id: '$material_id' },
+            cantidad: { $sum: '$cantidad' },
+          },
+        },
+        { $sort: { '_id.partida_id': 1, '_id.material_id': 1 } },
+      ])
+      .session(sesionActual());
+    return grupos.map((grupo) => ({
+      partidaId: grupo._id.partida_id,
+      materialId: grupo._id.material_id,
+      cantidad: redondearCantidad(aNumero(grupo.cantidad)),
+    }));
   }
 
   async crear(movimiento: Movimiento): Promise<void> {

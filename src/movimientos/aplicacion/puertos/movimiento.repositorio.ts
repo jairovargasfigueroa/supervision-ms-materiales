@@ -2,6 +2,7 @@ import type {
   CriteriosPagina,
   Pagina,
 } from '../../../compartido/dominio/paginacion.js';
+import type { ConsumoPartida } from '../../dominio/consumo.js';
 import type { Movimiento } from '../../dominio/movimiento.js';
 
 export const MOVIMIENTO_REPOSITORIO = Symbol('MOVIMIENTO_REPOSITORIO');
@@ -36,4 +37,9 @@ export interface MovimientoRepositorio {
     filtro: FiltroMovimientos,
     criterios: CriteriosPagina<OrdenMovimiento>,
   ): Promise<Pagina<Movimiento>>;
+  /**
+   * Suma de las salidas de la obra en el periodo, por partida y material (006), ordenada por
+   * `partidaId` y `materialId`. Los ingresos no cuentan.
+   */
+  sumarSalidas(obraId: string, periodo: string): Promise<ConsumoPartida[]>;
 }
