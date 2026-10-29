@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { createRemoteJWKSet } from 'jose';
 import { JwtGuard } from './infraestructura/auth/jwt.guard.js';
+import { RolesGuard } from './infraestructura/auth/roles.guard.js';
 import {
   CONJUNTO_CLAVES,
   ValidadorToken,
@@ -16,7 +17,7 @@ import { ProblemDetailsFilter } from './infraestructura/http/problem-details.fil
 import { RequestIdMiddleware } from './infraestructura/http/request-id.middleware.js';
 
 /**
- * Piezas transversales del servicio: token de Keycloak (guardia global), errores en
+ * Piezas transversales del servicio: token de Keycloak y rol (guardias globales), errores en
  * Problem Details y `X-Request-Id`.
  */
 @Module({
@@ -36,7 +37,9 @@ import { RequestIdMiddleware } from './infraestructura/http/request-id.middlewar
       },
     },
     ValidadorToken,
+    // Los guardias globales corren en este orden: primero el token, luego el rol.
     { provide: APP_GUARD, useClass: JwtGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },
   ],
   exports: [ValidadorToken],
