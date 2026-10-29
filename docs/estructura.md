@@ -59,16 +59,37 @@ src/
       puertos/      stock.repositorio.ts (interfaz + token, exportado para movimientos)
       casos-uso/    listar-stock-obra.caso-uso.ts, fijar-minimo.caso-uso.ts (upsert en transacción)
     infraestructura/
-      stock-obra.schema.ts (_id obraId:materialId), stock.repositorio.mongo.ts (fijarMinimo atómico: devuelve la fila anterior)
+      stock-obra.schema.ts (_id obraId:materialId), stock.repositorio.mongo.ts (fijarMinimo atómico: devuelve la fila anterior; ajustar con control de versión: StockCambiadoError si choca)
     presentacion/
       stock.controller.ts, dto/fijar-minimo.dto.ts, dto/stock.respuesta.ts
     stock.module.ts
+  cierres/                         # cierres de periodo (cierre_periodo): los escribe la 008, los lee la 004
+    dominio/        cierre-periodo.ts (EstadoCierre CERRADO/REABIERTO)
+    aplicacion/
+      puertos/      cierre-periodo.repositorio.ts (estaCerrado; token exportado para movimientos)
+    infraestructura/
+      cierre-periodo.schema.ts (_id obraId:periodo), cierre-periodo.repositorio.mongo.ts
+    cierres.module.ts
+  movimientos/                     # ingresos y salidas (movimiento), 004
+    dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado, datosMovimientoRegistrado)
+    aplicacion/
+      puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe; ORDENES_MOVIMIENTO)
+      casos-uso/    registrar-movimiento.caso-uso.ts (transacción, idempotencia, reintento si el stock choca, outbox StockBajo y MovimientoRegistrado),
+                    listar-movimientos.caso-uso.ts (paginado, exigirVer)
+    infraestructura/
+      movimiento.schema.ts (supera_stock, cerrado; índices por obra y periodo, material, partida y periodo),
+      movimiento.repositorio.mongo.ts
+    presentacion/
+      movimientos.controller.ts (POST /movimientos: 201 o 200 si es repetido; GET /obras/{obraId}/movimientos), dto/registrar-movimiento.dto.ts,
+      dto/movimiento-registrado.respuesta.ts, dto/listar-movimientos.dto.ts, dto/movimiento.respuesta.ts
+    movimientos.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   utilidades/canal-prueba.ts       # dobles del canal de RabbitMQ (CanalPrueba) y de RabbitCliente para el outbox (RabbitPrueba), y mensajes de prueba
   utilidades/obra-acceso-memoria.ts # repositorio de obra_acceso en memoria (unitarias)
   utilidades/material-memoria.ts   # repositorio de material en memoria (unitarias)
   utilidades/stock-memoria.ts      # repositorio de stock_obra en memoria (unitarias)
+  utilidades/movimiento-memoria.ts # repositorios de movimiento y cierre_periodo en memoria (unitarias)
   utilidades/app-prueba.ts         # app HTTP con mongodb-memory-server, tokens de prueba y doble de RabbitCliente (e2e)
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
@@ -76,6 +97,7 @@ test/
   stock.e2e-spec.ts                # GET /obras/{id}/stock y PUT .../minimo: upsert, estados, obra_acceso, roles, StockBajo
   outbox.e2e-spec.ts               # Outbox.agregar (en transacción) y OutboxPublicador (orden, propiedades, sin conexión, reintento) con mongodb-memory-server
   acceso-obra.e2e-spec.ts          # consumidor de ObraRegistrada (inbox, reintentos, fallidos) y AccesoObraServicio con mongodb-memory-server y CanalPrueba
+  movimientos.e2e-spec.ts          # POST /movimientos y GET /obras/{id}/movimientos: stock, idempotencia, periodo cerrado, acceso, outbox
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 

@@ -21,3 +21,8 @@ export function redondearCantidad(cantidad: number): number {
 function redondearMitadArriba(valor: number): number {
   return Math.floor(Number(valor.toPrecision(15)) + 0.5);
 }
+
+/** Suma exacta de dos cantidades (en milésimas enteras), con 3 decimales. */
+export function sumarCantidades(a: number, b: number): number {
+  return (aMilesimas(a) + aMilesimas(b)) / 10 ** DECIMALES_CANTIDAD;
+}

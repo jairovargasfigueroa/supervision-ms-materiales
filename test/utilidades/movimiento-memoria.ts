@@ -1,0 +1,65 @@
+import type { CierrePeriodoRepositorio } from '../../src/cierres/aplicacion/puertos/cierre-periodo.repositorio.js';
+import type {
+  CriteriosPagina,
+  Pagina,
+} from '../../src/compartido/dominio/paginacion.js';
+import {
+  type FiltroMovimientos,
+  MovimientoRepetidoError,
+  type MovimientoRepositorio,
+  type OrdenMovimiento,
+} from '../../src/movimientos/aplicacion/puertos/movimiento.repositorio.js';
+import type { Movimiento } from '../../src/movimientos/dominio/movimiento.js';
+
+/** Repositorio de `movimiento` en memoria para las pruebas unitarias (`id` único). */
+export class MovimientoRepositorioMemoria implements MovimientoRepositorio {
+  readonly movimientos = new Map<string, Movimiento>();
+
+  buscar(id: string): Promise<Movimiento | null> {
+    return Promise.resolve(this.movimientos.get(id) ?? null);
+  }
+
+  crear(movimiento: Movimiento): Promise<void> {
+    if (this.movimientos.has(movimiento.id)) {
+      return Promise.reject(new MovimientoRepetidoError(movimiento.id));
+    }
+    this.movimientos.set(movimiento.id, movimiento);
+    return Promise.resolve();
+  }
+
+  listar(
+    obraId: string,
+    filtro: FiltroMovimientos,
+    criterios: CriteriosPagina<OrdenMovimiento>,
+  ): Promise<Pagina<Movimiento>> {
+    const sentido = criterios.direccion === 'desc' ? -1 : 1;
+    const todos = [...this.movimientos.values()]
+      .filter((m) => m.obraId === obraId)
+      .filter((m) => !filtro.periodo || m.periodo === filtro.periodo)
+      .sort(
+        (a, b) =>
+          sentido * (a.registradoEn.getTime() - b.registradoEn.getTime()) ||
+          sentido * a.id.localeCompare(b.id),
+      );
+    const inicio = (criterios.pagina - 1) * criterios.tamano;
+    return Promise.resolve({
+      items: todos.slice(inicio, inicio + criterios.tamano),
+      total: todos.length,
+      pagina: criterios.pagina,
+      tamano: criterios.tamano,
+    });
+  }
+}
+
+/** `cierre_periodo` en memoria: los periodos cerrados por obra (`obraId:periodo`). */
+export class CierrePeriodoRepositorioMemoria implements CierrePeriodoRepositorio {
+  readonly cerrados = new Set<string>();
+
+  cerrar(obraId: string, periodo: string): void {
+    this.cerrados.add(`${obraId}:${periodo}`);
+  }
+
+  estaCerrado(obraId: string, periodo: string): Promise<boolean> {
+    return Promise.resolve(this.cerrados.has(`${obraId}:${periodo}`));
+  }
+}

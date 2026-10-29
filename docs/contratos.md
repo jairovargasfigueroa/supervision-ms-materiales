@@ -48,11 +48,16 @@ Roles: `almacenero` asignado.
 }
 ```
 `partidaId` obligatorio en `SALIDA`; `notaRemision` solo en `INGRESO` y opcional.
+Validación: `id` UUID v4; `obraId` y `partidaId` UUID; `materialId` no vacío; `tipo` `INGRESO` o `SALIDA`; `cantidad` mayor que 0 con hasta 3 decimales; `partidaId` en un `INGRESO` o `notaRemision` en una `SALIDA` → `400`; `notaRemision.numero` no vacío (se guarda sin espacios a los costados); `registradoEn` en ISO 8601 con hora y zona (`Z` o `±hh:mm`).
+En una transacción de MongoDB: `periodo` = mes de `registradoEn` en `America/La_Paz`; el stock del material en la obra suma (`INGRESO`) o resta (`SALIDA`) con control de versión (si choca con otro movimiento a la vez, se vuelve a intentar; si el material no tenía fila en la obra, se crea con mínimo 0); `superaStock` es `true` si una salida es mayor que el stock que había (se registra igual). `stock` es la fila después del movimiento.
 Devuelve `201` (o `200` si el `id` ya existía) `{ "id", "periodo": "2026-11", "superaStock": false, "stock": { "cantidad", "minimo", "estado" } }`.
-Errores: `400` · `403` · `404 OBRA_NO_ENCONTRADA` · `422 MATERIAL_INACTIVO` · `409 PERIODO_CERRADO`.
+Envío repetido (mismo `id`, también a la vez): `200` con el movimiento como quedó y el stock actual, sin volver a sumar, restar ni publicar, aunque el resto del cuerpo sea distinto o el material o el periodo hayan cambiado después; solo para el almacenero asignado a la obra de ese movimiento (si no, `404 OBRA_NO_ENCONTRADA`).
+Errores, en este orden: `400` · `403 SIN_PERMISO` (rol distinto de `almacenero`) · `404 OBRA_NO_ENCONTRADA` (no asignado o la obra no está en `obra_acceso`) · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO` · `409 PERIODO_CERRADO` («El periodo AAAA-MM ya está cerrado»: hay un `cierre_periodo` `CERRADO` para la obra y ese periodo).
 
 ### GET /obras/{obraId}/movimientos?periodo= · 004
 Roles: internos que pueden ver la obra. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `registradoEn desc`. Cada elemento: `[{ "id", "materialId", "tipo", "cantidad", "partidaId", "periodo", "superaStock", "cerrado", "registradoPor", "registradoEn" }]`
+- `periodo`: `AAAA-MM` (opcional; sin él, todos los periodos). `orden`: solo `registradoEn`; `direccion`: `asc` o `desc`. `partidaId` es `null` en los ingresos.
+- Errores: `400 PAGINACION_INVALIDA` (`tamano` mayor a 100) · `400` (otro parámetro mal formado: `periodo` que no es `AAAA-MM`, `pagina` o `tamano` menor a 1, `orden` o `direccion` desconocidos) · `404 OBRA_NO_ENCONTRADA` (la obra no está en `obra_acceso` o el usuario no la ve; también para `admin`).
 
 ### GET /obras/{obraId}/consumos?periodo=AAAA-MM · 006
 Roles: `admin`, `gerente` y `residente` asignado (si no ve la obra: `404 OBRA_NO_ENCONTRADA`). `[{ "partidaId", "materialId", "cantidad" }]` (suma de salidas).
@@ -77,7 +82,8 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 
 - Cada evento se guarda en `outbox_evento` en la misma transacción que el dato que lo origina; `OutboxPublicador` lo publica cada segundo en el exchange `plataforma` con la clave `evento.materiales.<Tipo>`, persistente, `contentType: application/json` y `messageId` = `id` del sobre, y lo marca publicado cuando el broker confirma. Sin conexión a RabbitMQ quedan pendientes y salen al reconectar, en orden. Un evento puede salir dos veces (corte justo después de publicar), nunca ninguna: los consumidores descartan los repetidos por `id`.
 - Sobre común: `{ id, tipo, version: 1, ocurridoEn, origen: "materiales", correlacionId, datos }`. `correlacionId` es el `X-Request-Id` de la petición que lo originó si es un UUID; si no, el `id` del mensaje.
-- `StockBajo` se publica solo cuando el stock **cruza** el mínimo: queda `BAJO` y antes no lo estaba (o el material no tenía fila en la obra). Si ya estaba `BAJO`, no se repite. En la 003 lo dispara `PUT .../minimo` (por ejemplo, fijar un mínimo mayor que 0 a un material con cantidad 0); en la 004, un movimiento.
+- `StockBajo` se publica solo cuando el stock **cruza** el mínimo: queda `BAJO` y antes no lo estaba (o el material no tenía fila en la obra). Si ya estaba `BAJO`, no se repite. En la 003 lo dispara `PUT .../minimo` (por ejemplo, fijar un mínimo mayor que 0 a un material con cantidad 0); en la 004, un movimiento (por ejemplo, la primera salida de un material sin fila en la obra, que deja la cantidad negativa con mínimo 0).
+- `MovimientoRegistrado` se publica con cada movimiento nuevo (no con un envío repetido), en la misma transacción que el movimiento y el ajuste del stock; `partidaId` es `null` en los ingresos y `registradoEn` va en ISO 8601 UTC. `correlacionId` de `StockBajo` y `MovimientoRegistrado`: el `X-Request-Id` de `POST /movimientos` si es un UUID.
 
 ### Cómo se consume (cola `materiales`)
 
