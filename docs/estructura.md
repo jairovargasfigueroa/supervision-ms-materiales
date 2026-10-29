@@ -13,12 +13,17 @@ src/
   main.ts                          # ValidationPipe, filtro de errores, Swagger (dev), puerto
   app.module.ts
   compartido/
+    compartido.module.ts           # JWKS (CONJUNTO_CLAVES), ValidadorToken, JwtGuard (APP_GUARD), filtro (APP_FILTER), middleware X-Request-Id
     dominio/        regla-negocio.error.ts, periodo.ts (America/La_Paz), cantidad.ts
     infraestructura/
-      auth/         jwt.guard.ts (jose + JWKS), roles.guard.ts, roles.decorator.ts, usuario-actual.decorator.ts
-      http/         problem-details.filter.ts, request-id.middleware.ts
+      auth/         validador-token.ts (jose + JWKS), jwt.guard.ts (guardia global), publico.decorator.ts (@Publico),
+                    usuario-autenticado.ts, roles.guard.ts, roles.decorator.ts, usuario-actual.decorator.ts (los tres de roles, en la 001)
+      http/         problem-details.filter.ts, request-id.middleware.ts, solicitud.ts (tipo de la petición con requestId y usuario)
       mensajeria/   mensajeria.module.ts, rabbit.cliente.ts, sobre.ts, outbox.schema.ts, outbox.publicador.ts, inbox.schema.ts
       mongo/        transaccion.ts (ayuda para sesiones/transacciones)
+  salud/                           # GET /salud (@Publico, no toca MongoDB ni RabbitMQ)
+    presentacion/   salud.controller.ts
+    salud.module.ts
   acceso-obra/                     # copia de asignaciones (obra_acceso)
   catalogo/                        # un módulo por contexto: catalogo, stock, movimientos, cierres
     dominio/        material.ts, tipo-material.ts
@@ -31,6 +36,8 @@ src/
       materiales.controller.ts, dto/crear-material.dto.ts, dto/material.respuesta.ts
     catalogo.module.ts
 test/
+  utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados
+  seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   catalogo.e2e-spec.ts             # API completa con mongodb-memory-server
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
@@ -40,6 +47,8 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 - `dominio` no importa NestJS ni Mongoose. `aplicacion` depende solo de `dominio` y de interfaces de `puertos`.
 - Los casos de uso son clases `@Injectable()` con un método `ejecutar(...)`; reciben los repositorios por token de inyección.
 - Los controladores validan con DTO de `class-validator`, llaman al caso de uso y devuelven un objeto de `*.respuesta.ts`.
+- Autenticación: `JwtGuard` es global y exige token en toda ruta salvo las marcadas con `@Publico()` (solo `/salud`). Las rutas inexistentes no pasan por el guardia: `problem-details.filter.ts` valida el token antes de responder `404`, así que sin token válido responden `401 NO_AUTENTICADO`. El JWKS se pide a Keycloak la primera vez que llega un token (la app arranca sin Keycloak); en las pruebas se reemplaza `CONJUNTO_CLAVES` por un `createLocalJWKSet`.
+- Cada petición se registra con su `X-Request-Id` (método, ruta sin la consulta, estado y duración); nunca se registran encabezados, tokens ni cuerpos.
 - Las reglas del negocio lanzan `ReglaNegocioError(codigo, mensaje, status)`; `problem-details.filter.ts` la convierte en Problem Details.
 - Escrituras con varias colecciones (movimiento + stock + outbox) en una transacción de MongoDB (`transaccion.ts`).
 - Nombres de archivo en `kebab-case` con sufijo de tipo (`.caso-uso.ts`, `.controller.ts`, `.schema.ts`, `.dto.ts`); clases en español.
