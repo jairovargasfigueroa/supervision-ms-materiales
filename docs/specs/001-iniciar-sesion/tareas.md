@@ -4,6 +4,6 @@ Requisitos y diseño: `docs/specs/001-iniciar-sesion/` de la carpeta que agrupa 
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Decorador `@Roles()` y `RolesGuard` global que lee `realm_access.roles`
-- [ ] Utilidad de pruebas para firmar tokens por rol
-- [ ] Pruebas 401/403/200
+- [x] Decorador `@Roles()` y `RolesGuard` global que lee `realm_access.roles`
+- [x] Utilidad de pruebas para firmar tokens por rol
+- [x] Pruebas 401/403/200
