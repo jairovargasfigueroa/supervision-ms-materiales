@@ -11,4 +11,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] `npm run semilla`: contexto de NestJS solo con Mongoose; *upsert* con `$setOnInsert` en una transacción; calcula `periodo`, `supera_stock`, `cerrado` y `stock_obra.cantidad` recorriendo los movimientos en orden; falla si el estado final no coincide con la tabla del documento; guarda contra `NODE_ENV=production` y base no local
 - [x] `npm run semilla:vaciar`: vacía todas las colecciones del negocio
 - [x] Pruebas (mongodb-memory-server en *replica set*, D = 2026-10-28): dos cargas sin duplicar; estados de las 14 filas de stock (1 `BAJO`, 2 `JUSTO`); solo la salida 20018 con `supera_stock`; consumos de la obra 1 en `2026-09`; `GET /stock/resumen`; `outbox_evento` vacía; guarda
-- [ ] README: cómo correr la semilla sola y vaciarla
+- [x] README: cómo correr la semilla sola y vaciarla
