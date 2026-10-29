@@ -39,6 +39,7 @@ src/
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
+  roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
   catalogo.e2e-spec.ts             # API completa con mongodb-memory-server
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```

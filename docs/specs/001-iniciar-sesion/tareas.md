@@ -6,4 +6,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [x] Decorador `@Roles()` y `RolesGuard` global que lee `realm_access.roles`
 - [x] Utilidad de pruebas para firmar tokens por rol
-- [ ] Pruebas 401/403/200
+- [x] Pruebas 401/403/200
