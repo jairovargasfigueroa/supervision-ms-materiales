@@ -7,6 +7,10 @@ Fuente para este servicio. La copia general está en `docs/contratos/` de la car
 ### GET /salud
 Sin token · `200 {"estado":"ok"}`
 
+### Token y `X-Request-Id` (todas las rutas)
+- Token de Keycloak en `Authorization: Bearer …`: se valida firma (JWKS del realm), vencimiento, emisor `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}` y audiencia `plataforma-api`. Sin token o con uno inválido: `401 NO_AUTENTICADO` (también en rutas que no existen). Con token válido, una ruta que no existe responde `404 RUTA_NO_ENCONTRADA`.
+- `X-Request-Id`: si llega se usa (hasta 128 caracteres `A-Z a-z 0-9 . _ : -`), si no se genera un UUID; siempre vuelve en la respuesta.
+
 ### GET /materiales?busqueda=&soloActivos= · 002, 003, 006
 Roles: todos los internos (`admin`, `residente`, `gerente`, `maestro`, `almacenero`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `codigo asc`. Cada elemento:
 `[{ "id", "codigo": "CEM-IP30", "nombre": "Cemento IP-30", "tipo": "CEMENTO", "unidad": "bolsa", "unidadPlural": "bolsas", "precioReferencial": 62.00, "activo": true, "atributos": [{ "nombre": "peso", "valor": "50 kg" }] }]`
