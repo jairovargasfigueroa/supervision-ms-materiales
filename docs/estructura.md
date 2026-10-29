@@ -27,7 +27,15 @@ src/
   salud/                           # GET /salud (@Publico, no toca MongoDB ni RabbitMQ)
     presentacion/   salud.controller.ts
     salud.module.ts
-  acceso-obra/                     # copia de asignaciones (obra_acceso)
+  acceso-obra/                     # copia de asignaciones (obra_acceso), 002
+    dominio/        obra-acceso.ts (ObraAcceso, Asignaciones)
+    aplicacion/
+      puertos/      obra-acceso.repositorio.ts
+      casos-uso/    registrar-obra-acceso.caso-uso.ts
+    infraestructura/
+      obra-acceso.schema.ts, obra-acceso.repositorio.mongo.ts (upsert por obraId),
+      obra-registrada.consumidor.ts (manejador de ObraRegistrada; valida datos)
+    acceso-obra.module.ts
   catalogo/                        # un módulo por contexto: catalogo, stock, movimientos, cierres
     dominio/        material.ts, tipo-material.ts
     aplicacion/
@@ -41,6 +49,7 @@ src/
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   utilidades/canal-prueba.ts       # doble del canal de RabbitMQ (CanalPrueba) y mensajes de prueba (sin servidor)
+  utilidades/obra-acceso-memoria.ts # repositorio de obra_acceso en memoria (unitarias)
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
   catalogo.e2e-spec.ts             # API completa con mongodb-memory-server

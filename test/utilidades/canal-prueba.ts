@@ -87,3 +87,28 @@ export function mensajePrueba(
     },
   };
 }
+
+/** `datos` completos de `ObraRegistrada` (contrato de eventos, 002). */
+export function datosObraRegistrada(
+  cambios: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    obraId: 'b2c3d4e5-0000-4000-8000-000000000001',
+    nombre: 'Edificio Las Palmas',
+    fechaInicio: '2026-11-02',
+    asignaciones: {
+      residenteId: 'residente-1',
+      maestroId: 'maestro-1',
+      almaceneroId: 'almacenero-1',
+      clienteId: 'cliente-1',
+    },
+    contrato: {
+      monto: 1500000,
+      plazoDias: 365,
+      anticipoPct: 10,
+      retencionPct: 5,
+      firmadoEn: '2026-10-28',
+    },
+    ...cambios,
+  };
+}
