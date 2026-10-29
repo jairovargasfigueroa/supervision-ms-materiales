@@ -118,7 +118,7 @@ describe('ConsumidorMensajes', () => {
   });
 
   it.each(['CerrarConsumos', 'ReabrirConsumos'])(
-    'un tipo sin manejador (%s, de la 008) se guarda en plataforma.fallidos',
+    'un tipo sin manejador registrado (%s, en esta prueba) se guarda en plataforma.fallidos',
     async (tipo) => {
       const sobre = sobrePrueba(tipo, {
         planillaId: 'p1',

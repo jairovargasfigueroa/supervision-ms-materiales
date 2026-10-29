@@ -87,16 +87,22 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 ### Cómo se publica (outbox)
 
 - Cada evento se guarda en `outbox_evento` en la misma transacción que el dato que lo origina; `OutboxPublicador` lo publica cada segundo en el exchange `plataforma` con la clave `evento.materiales.<Tipo>`, persistente, `contentType: application/json` y `messageId` = `id` del sobre, y lo marca publicado cuando el broker confirma. Sin conexión a RabbitMQ quedan pendientes y salen al reconectar, en orden. Un evento puede salir dos veces (corte justo después de publicar), nunca ninguna: los consumidores descartan los repetidos por `id`.
-- Sobre común: `{ id, tipo, version: 1, ocurridoEn, origen: "materiales", correlacionId, datos }`. `correlacionId` es el `X-Request-Id` de la petición que lo originó si es un UUID; si no, el `id` del mensaje.
+- Sobre común: `{ id, tipo, version: 1, ocurridoEn, origen: "materiales", correlacionId, datos }`. `correlacionId` es el `X-Request-Id` de la petición que lo originó si es un UUID (en las respuestas a un comando, el `correlacionId` del comando); si no, el `id` del mensaje.
 - `StockBajo` se publica solo cuando el stock **cruza** el mínimo: queda `BAJO` y antes no lo estaba (o el material no tenía fila en la obra). Si ya estaba `BAJO`, no se repite. En la 003 lo dispara `PUT .../minimo` (por ejemplo, fijar un mínimo mayor que 0 a un material con cantidad 0); en la 004, un movimiento (por ejemplo, la primera salida de un material sin fila en la obra, que deja la cantidad negativa con mínimo 0).
 - `MovimientoRegistrado` se publica con cada movimiento nuevo (no con un envío repetido), en la misma transacción que el movimiento y el ajuste del stock; `partidaId` es `null` en los ingresos y `registradoEn` va en ISO 8601 UTC. `correlacionId` de `StockBajo` y `MovimientoRegistrado`: el `X-Request-Id` de `POST /movimientos` si es un UUID.
+
+### Saga «aprobar planilla» (008)
+
+- `CerrarConsumos`: en una transacción, `cierre_periodo` (`_id = obraId:periodo`) pasa a `CERRADO` con esa `planillaId` (se crea si no existe o se reemplaza si estaba `REABIERTO`), todos los movimientos de la obra en el periodo quedan con `cerrado = true` y se publica `ConsumosCerrados`. Si ya está `CERRADO` por la misma planilla, responde `ConsumosCerrados` otra vez sin cambios; si está `CERRADO` por otra planilla, `CierreFallido` con `motivo` «Los consumos del periodo AAAA-MM ya fueron cerrados por otra planilla» (con el periodo del comando) y nada cambia.
+- `ReabrirConsumos`: si el cierre es `CERRADO` por esa planilla, pasa a `REABIERTO` (conserva `cerrado_en`), los movimientos del periodo vuelven a `cerrado = false` y se publica `ConsumosReabiertos`. Sin cierre o ya `REABIERTO` por esa planilla, responde `ConsumosReabiertos` sin cambios. Si el cierre es de otra planilla, no se toca ni se publica nada (queda en el log).
+- Las respuestas llevan el `correlacionId` del comando (el id de la saga en Obras). `periodo` debe ser `AAAA-MM`; si faltan `planillaId`, `obraId` o `periodo`, o el periodo no tiene ese formato, el mensaje va directo a `plataforma.fallidos`.
 
 ### Cómo se consume (cola `materiales`)
 
 - Exchange `plataforma` (topic, durable) y colas `materiales` y `plataforma.fallidos` (durables, sin argumentos) declaradas por infra; al conectar, el servicio las comprueba con los mismos argumentos y enlaza `materiales` a las tres claves que escucha. Prefetch 10 y confirmación manual.
 - Inbox: cada mensaje se aplica en una transacción de MongoDB que inserta su `id` en `mensaje_procesado` y hace las escrituras; un `id` repetido se confirma sin hacer nada.
 - Si aplicar el mensaje falla: se vuelve a publicar en la cola `materiales` (exchange por defecto) con el encabezado `x-intentos` + 1 y se confirma el original; al tercer fallo se publica en `plataforma.fallidos`.
-- Van directo a `plataforma.fallidos`: un cuerpo que no es JSON o sin sobre válido (`id`, `tipo`, `version` 1, `datos`), `datos` incompletos y los tipos que todavía no tienen consumidor (`CerrarConsumos` y `ReabrirConsumos` hasta la 008).
+- Van directo a `plataforma.fallidos`: un cuerpo que no es JSON o sin sobre válido (`id`, `tipo`, `version` 1, `datos`), `datos` incompletos y los tipos que todavía no tienen consumidor.
 - En `plataforma.fallidos` el cuerpo es el original sin cambios y los encabezados dicen por qué: `x-error` (texto del error), `x-intentos` (fallos), `x-cola-origen` (`materiales`) y `x-clave-origen` (clave de enrutamiento original).
 
 ## Herramientas MCP (capa 5, solo lectura)

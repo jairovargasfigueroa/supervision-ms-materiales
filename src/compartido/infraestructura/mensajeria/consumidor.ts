@@ -82,8 +82,8 @@ export class ConsumidorMensajes {
 
     const manejador = this.manejadores.get(sobre.tipo);
     if (!manejador) {
-      // Tipos que la cola recibe pero que aún no tienen consumidor (CerrarConsumos y
-      // ReabrirConsumos, de la 008): se guardan en fallidos para no perderlos.
+      // Tipos que la cola recibe pero que aún no tienen consumidor: se guardan en fallidos para
+      // no perderlos (se pueden reenviar cuando exista su manejador).
       await this.descartar(
         mensaje,
         canal,
