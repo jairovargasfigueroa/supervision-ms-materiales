@@ -19,6 +19,8 @@ export interface AppPrueba {
   modulo: TestingModule;
   claves: ClavesPrueba;
   conexion: Connection;
+  /** URL de la base en memoria (para otros contextos de Nest, como la semilla). */
+  uri: string;
   /** Borra todos los documentos de todas las colecciones (entre pruebas). */
   vaciar(): Promise<void>;
   cerrar(): Promise<void>;
@@ -36,6 +38,7 @@ export async function crearAppPrueba(
   const mongo = await MongoMemoryReplSet.create({
     replSet: { count: 1, storageEngine: 'wiredTiger' },
   });
+  const uri = mongo.getUri('materiales_db');
   const claves = await crearClavesPrueba();
   const modulo = await Test.createTestingModule({
     imports: [
@@ -44,7 +47,7 @@ export async function crearAppPrueba(
         ignoreEnvFile: true,
         load: [() => CONFIG_PRUEBA],
       }),
-      MongooseModule.forRoot(mongo.getUri('materiales_db')),
+      MongooseModule.forRoot(uri),
       CompartidoModule,
       ...modulos,
     ],
@@ -67,6 +70,7 @@ export async function crearAppPrueba(
     modulo,
     claves,
     conexion,
+    uri,
     vaciar: async () => {
       for (const modelo of Object.values(conexion.models)) {
         await modelo.deleteMany({});
