@@ -30,6 +30,16 @@ export class StockRepositorioMongo implements StockRepositorio {
     return documentos.map(aDominio);
   }
 
+  async listarPorObras(obraIds: readonly string[]): Promise<StockObra[]> {
+    if (obraIds.length === 0) return [];
+    // Usa el índice `por_obra`.
+    const documentos = await this.modelo
+      .find({ obra_id: { $in: [...obraIds] } })
+      .session(sesionActual())
+      .lean();
+    return documentos.map(aDominio);
+  }
+
   async buscar(obraId: string, materialId: string): Promise<StockObra | null> {
     const documento = await this.modelo
       .findById(idStockObra(obraId, materialId))

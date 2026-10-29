@@ -12,6 +12,7 @@ import type { Outbox } from '../../../compartido/infraestructura/mensajeria/outb
 import type { Transaccion } from '../../../compartido/infraestructura/mongo/transaccion.js';
 import { FijarMinimoCasoUso } from './fijar-minimo.caso-uso.js';
 import { ListarStockObraCasoUso } from './listar-stock-obra.caso-uso.js';
+import { ResumirStockCasoUso } from './resumir-stock.caso-uso.js';
 
 const OBRA = 'obra-1';
 const admin: UsuarioAutenticado = {
@@ -65,6 +66,7 @@ describe('Casos de uso del stock', () => {
   let stock: StockRepositorioMemoria;
   let listar: ListarStockObraCasoUso;
   let fijar: FijarMinimoCasoUso;
+  let resumir: ResumirStockCasoUso;
   let outbox: OutboxMemoria;
 
   beforeEach(async () => {
@@ -74,6 +76,7 @@ describe('Casos de uso del stock', () => {
     outbox = new OutboxMemoria();
     const acceso = new AccesoObraServicio(obras);
     listar = new ListarStockObraCasoUso(acceso, stock, materiales);
+    resumir = new ResumirStockCasoUso(acceso, stock);
     fijar = new FijarMinimoCasoUso(
       acceso,
       stock,
@@ -226,6 +229,56 @@ describe('Casos de uso del stock', () => {
     it('con un error (material inactivo) no se agrega nada', async () => {
       await expect(fijar.ejecutar(OBRA, 'viejo', 50, admin)).rejects.toThrow();
       expect(outbox.agregados).toEqual([]);
+    });
+  });
+
+  describe('ResumirStockCasoUso (009)', () => {
+    beforeEach(async () => {
+      await obras.guardar(
+        new ObraAcceso(
+          'obra-2',
+          'Torre Norte',
+          {
+            residenteId: 'residente-2',
+            maestroId: 'maestro-2',
+            almaceneroId: 'almacenero-2',
+            clienteId: 'cliente-2',
+          },
+          new Date(),
+        ),
+      );
+      stock.poner(OBRA, 'cemento', 5, 10); // BAJO
+      stock.poner(OBRA, 'arena', 12, 10); // JUSTO
+      stock.poner('obra-2', 'cemento', 0, 1); // BAJO
+      stock.poner('obra-2', 'arena', 1, 2); // BAJO
+    });
+
+    it('admin ve todas las obras pedidas, sin repetir y en el orden pedido', async () => {
+      expect(await resumir.ejecutar(['obra-2', OBRA, 'obra-2'], admin)).toEqual(
+        [
+          { obraId: 'obra-2', materialesBajos: 2 },
+          { obraId: OBRA, materialesBajos: 1 },
+        ],
+      );
+    });
+
+    it('residente: solo sus obras; las que no ve o no están en obra_acceso se omiten', async () => {
+      expect(
+        await resumir.ejecutar(
+          [OBRA, 'obra-2', 'no-existe'],
+          residente('residente-1'),
+        ),
+      ).toEqual([{ obraId: OBRA, materialesBajos: 1 }]);
+      expect(await resumir.ejecutar([OBRA], residente('residente-9'))).toEqual(
+        [],
+      );
+    });
+
+    it('una obra visible sin filas de stock cuenta 0', async () => {
+      stock.filas.clear();
+      expect(await resumir.ejecutar([OBRA], admin)).toEqual([
+        { obraId: OBRA, materialesBajos: 0 },
+      ]);
     });
   });
 });
