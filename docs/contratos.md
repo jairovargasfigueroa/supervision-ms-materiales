@@ -15,23 +15,28 @@ Sin token · `200 {"estado":"ok"}`
 ### GET /materiales?busqueda=&soloActivos= · 002, 003, 006
 Roles: todos los internos (`admin`, `residente`, `gerente`, `maestro`, `almacenero`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `codigo asc`. Cada elemento:
 `[{ "id", "codigo": "CEM-IP30", "nombre": "Cemento IP-30", "tipo": "CEMENTO", "unidad": "bolsa", "unidadPlural": "bolsas", "precioReferencial": 62.00, "activo": true, "atributos": [{ "nombre": "peso", "valor": "50 kg" }] }]`
+- `busqueda`: parte del código o del nombre, sin distinguir mayúsculas. `soloActivos`: `true` o `false` (sin el parámetro, todos).
+- `orden`: `codigo`, `nombre`, `tipo` o `precioReferencial`; `direccion`: `asc` o `desc`.
+- Errores: `400 PAGINACION_INVALIDA` (`tamano` mayor a 100) · `400` (otro parámetro mal formado: `pagina` o `tamano` menor a 1, `orden` o `direccion` desconocidos).
 
 ### POST /materiales · 003
-Roles: `admin`. Recibe el material sin `id` (`activo` por defecto `true`). Devuelve `201` con el material.
-Errores: `400` · `409 CODIGO_MATERIAL_REPETIDO`.
+Roles: `admin`. Recibe el material sin `id` (`activo` por defecto `true`, `atributos` por defecto `[]`). Devuelve `201` con el material.
+Validación (003, criterio 3): `codigo` obligatorio, hasta 20 caracteres, se guarda en mayúsculas sin espacios a los costados; `nombre` obligatorio, hasta 120; `tipo` uno de `CEMENTO`, `ACERO`, `AGREGADO`, `LADRILLO`, `MADERA`, `ELECTRICO`, `SANITARIO`, `PINTURA`, `OTRO`; `unidad` y `unidadPlural` obligatorias; `precioReferencial` ≥ 0 con hasta 2 decimales; cada atributo con `nombre` y `valor` no vacíos. Los textos se guardan sin espacios a los costados.
+Errores: `400` (con `errores[]` por campo, por ejemplo `atributos.0.valor`) · `409 CODIGO_MATERIAL_REPETIDO`.
 
 ### PUT /materiales/{id} · 003
-Roles: `admin`. Recibe el material completo (incluye `activo`). Devuelve `200`.
-Errores: `404 MATERIAL_NO_ENCONTRADO` · `409 CODIGO_MATERIAL_REPETIDO`.
+Roles: `admin`. Recibe el material completo (incluye `activo`, obligatorio; mismas validaciones que `POST`). Devuelve `200`.
+Errores: `400` · `404 MATERIAL_NO_ENCONTRADO` · `409 CODIGO_MATERIAL_REPETIDO`.
 
 ### GET /obras/{obraId}/stock · 003, 004
 Roles: internos que pueden ver la obra (`obra_acceso`).
 `[{ "materialId", "codigo", "nombre", "unidad", "unidadPlural", "cantidad": 120.0, "minimo": 100.0, "estado": "JUSTO" }]`
-Errores: `404 OBRA_NO_ENCONTRADA`.
+Un elemento por material con movimientos o mínimo en la obra (también los materiales desactivados), ordenados por `codigo`. `estado` se calcula al leer: `BAJO` si cantidad < mínimo; `JUSTO` si mínimo ≤ cantidad ≤ 1,25 × mínimo; `OK` si es mayor.
+Errores: `404 OBRA_NO_ENCONTRADA` (la obra no está en `obra_acceso` o el usuario no la ve; también para `admin`).
 
 ### PUT /obras/{obraId}/stock/{materialId}/minimo · 003
-Roles: `admin`. Recibe `{ "minimo": 100 }`. Devuelve `200` con la fila de stock.
-Errores: `404 OBRA_NO_ENCONTRADA` · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO`.
+Roles: `admin`. Recibe `{ "minimo": 100 }` (número ≥ 0 con hasta 3 decimales). *Upsert*: si el material no tenía fila en la obra, la crea con cantidad 0. Devuelve `200` con la fila de stock (mismo formato que un elemento de `GET /obras/{obraId}/stock`).
+Errores, en este orden: `400` · `404 OBRA_NO_ENCONTRADA` · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO`.
 
 ### POST /movimientos · 004
 Roles: `almacenero` asignado.
@@ -65,8 +70,14 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 | `evento.materiales.CierreFallido` | publica | `planillaId, motivo` |
 | `comando.materiales.ReabrirConsumos` | escucha | `planillaId, obraId, periodo` |
 | `evento.materiales.ConsumosReabiertos` | publica | `planillaId, obraId, periodo` |
-| `evento.materiales.StockBajo` | publica | `obraId, materialId, cantidad, minimo` (capa 2) |
+| `evento.materiales.StockBajo` | publica | `obraId, materialId, cantidad, minimo` (003 y 004; lo escucha n8n en la capa 2) |
 | `evento.materiales.MovimientoRegistrado` | publica | `movimientoId, obraId, materialId, tipo, cantidad, partidaId, periodo, superaStock, registradoEn` (capa 4) |
+
+### Cómo se publica (outbox)
+
+- Cada evento se guarda en `outbox_evento` en la misma transacción que el dato que lo origina; `OutboxPublicador` lo publica cada segundo en el exchange `plataforma` con la clave `evento.materiales.<Tipo>`, persistente, `contentType: application/json` y `messageId` = `id` del sobre, y lo marca publicado cuando el broker confirma. Sin conexión a RabbitMQ quedan pendientes y salen al reconectar, en orden. Un evento puede salir dos veces (corte justo después de publicar), nunca ninguna: los consumidores descartan los repetidos por `id`.
+- Sobre común: `{ id, tipo, version: 1, ocurridoEn, origen: "materiales", correlacionId, datos }`. `correlacionId` es el `X-Request-Id` de la petición que lo originó si es un UUID; si no, el `id` del mensaje.
+- `StockBajo` se publica solo cuando el stock **cruza** el mínimo: queda `BAJO` y antes no lo estaba (o el material no tenía fila en la obra). Si ya estaba `BAJO`, no se repite. En la 003 lo dispara `PUT .../minimo` (por ejemplo, fijar un mínimo mayor que 0 a un material con cantidad 0); en la 004, un movimiento.
 
 ### Cómo se consume (cola `materiales`)
 

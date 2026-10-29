@@ -5,7 +5,7 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { createRemoteJWKSet } from 'jose';
 import { JwtGuard } from './infraestructura/auth/jwt.guard.js';
 import { RolesGuard } from './infraestructura/auth/roles.guard.js';
@@ -15,10 +15,11 @@ import {
 } from './infraestructura/auth/validador-token.js';
 import { ProblemDetailsFilter } from './infraestructura/http/problem-details.filter.js';
 import { RequestIdMiddleware } from './infraestructura/http/request-id.middleware.js';
+import { crearValidationPipe } from './infraestructura/http/validacion.js';
 
 /**
- * Piezas transversales del servicio: token de Keycloak y rol (guardias globales), errores en
- * Problem Details y `X-Request-Id`.
+ * Piezas transversales del servicio: token de Keycloak y rol (guardias globales), validación de
+ * los DTO (`ValidationPipe` global), errores en Problem Details y `X-Request-Id`.
  */
 @Module({
   providers: [
@@ -40,6 +41,7 @@ import { RequestIdMiddleware } from './infraestructura/http/request-id.middlewar
     // Los guardias globales corren en este orden: primero el token, luego el rol.
     { provide: APP_GUARD, useClass: JwtGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_PIPE, useFactory: crearValidationPipe },
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },
   ],
   exports: [ValidadorToken],

@@ -21,11 +21,15 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 ### stock_obra
 | Campo | Tipo | Notas |
 |---|---|---|
-| _id | string | `obra_id` + `material_id` |
-| cantidad | decimal | se recalcula con los movimientos |
-| minimo | decimal | stock mínimo para esa obra |
-| version | int | control de concurrencia |
+| _id | string | `obra_id` + `:` + `material_id` |
+| obra_id | string | ref Obras (índice, para listar el stock de una obra) |
+| material_id | string | FK material |
+| cantidad | decimal | se recalcula con los movimientos; 0 al crearse por un mínimo (003) |
+| minimo | decimal | stock mínimo para esa obra (≥ 0) |
+| version | int | control de concurrencia (sube en 1 con cada cambio) |
 | actualizado_en | date | |
+
+El estado (`BAJO`, `JUSTO`, `OK`) no se guarda: se calcula al leer (reglas del negocio). Los `decimal` se guardan como `Decimal128`.
 
 ### movimiento
 | Campo | Tipo | Notas |
@@ -74,7 +78,7 @@ Copia de las asignaciones de cada obra; llega con `ObraRegistrada`. Sirve para v
 | creado_en | date | |
 | publicado_en | date | nulo hasta publicarse |
 
-Se escribe en la misma transacción de MongoDB que el movimiento o el cierre (requiere MongoDB como *replica set*, también en desarrollo).
+Se escribe en la misma transacción de MongoDB que el dato que lo origina: el mínimo (`StockBajo`, 003), el movimiento (004) o el cierre (008) (requiere MongoDB como *replica set*, también en desarrollo). `OutboxPublicador` publica los pendientes cada segundo, en orden de `creado_en`, y pone `publicado_en` cuando el broker confirma.
 
 ### mensaje_procesado
 | Campo | Tipo | Notas |
@@ -85,7 +89,9 @@ Se escribe en la misma transacción de MongoDB que el movimiento o el cierre (re
 ## Índices previstos
 
 - `movimiento`: (`obra_id`, `periodo`), (`obra_id`, `material_id`), (`obra_id`, `partida_id`, `periodo`).
-- `material`: `codigo` único.
+- `material`: `codigo` único (`codigo_unico`).
+- `stock_obra`: `obra_id` (`por_obra`).
+- `outbox_evento`: (`publicado_en`, `creado_en`) (`pendientes`).
 
 ## Relaciones
 
