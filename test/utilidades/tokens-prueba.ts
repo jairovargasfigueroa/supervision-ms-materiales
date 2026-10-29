@@ -31,7 +31,24 @@ export interface ClavesPrueba {
   firmar: (opciones?: OpcionesToken) => Promise<string>;
   /** Firma con otra clave que no está en el JWKS (con el mismo `kid`). */
   firmarConOtraClave: (opciones?: OpcionesToken) => Promise<string>;
+  /**
+   * Firma con la clave del JWKS un token con esos roles (`realm_access.roles`), iniciado desde
+   * el cliente `azp` (por defecto `erp`). Ejemplo: `firmarConRoles(['residente', 'cliente'], 'portal')`.
+   */
+  firmarConRoles: (
+    roles: string[],
+    azp?: string,
+    opciones?: OpcionesToken,
+  ) => Promise<string>;
 }
+
+/** Clientes de Keycloak (`azp`) que se usan en las pruebas. */
+export const AZP = {
+  erp: 'erp',
+  portal: 'portal',
+  appObra: 'app-obra',
+  gateway: 'gateway',
+} as const;
 
 const KID = 'clave-prueba';
 
@@ -68,5 +85,10 @@ export async function crearClavesPrueba(): Promise<ClavesPrueba> {
     jwks: createLocalJWKSet({ keys: [jwk] }),
     firmar: (opciones) => firmarCon(propia.privateKey, opciones),
     firmarConOtraClave: (opciones) => firmarCon(ajena.privateKey, opciones),
+    firmarConRoles: (roles, azp = AZP.erp, opciones = {}) =>
+      firmarCon(propia.privateKey, {
+        ...opciones,
+        payload: { ...opciones.payload, azp, realm_access: { roles } },
+      }),
   };
 }

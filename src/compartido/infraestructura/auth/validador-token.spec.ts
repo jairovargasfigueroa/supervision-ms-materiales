@@ -29,6 +29,18 @@ describe('ValidadorToken', () => {
     });
   });
 
+  it('devuelve los roles y el azp de un token firmado por rol', async () => {
+    const token = await claves.firmarConRoles(
+      ['residente', 'cliente'],
+      'portal',
+    );
+    await expect(validador.validar(`Bearer ${token}`)).resolves.toEqual({
+      id: '11111111-1111-1111-1111-111111111111',
+      roles: ['residente', 'cliente'],
+      azp: 'portal',
+    });
+  });
+
   it('acepta el esquema Bearer sin importar mayúsculas', async () => {
     const token = await claves.firmar();
     await expect(validador.validar(`bearer ${token}`)).resolves.toMatchObject({
