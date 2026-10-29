@@ -24,7 +24,8 @@ src/
                     validacion.ts (crearValidationPipe: whitelist, transform y 400 DATOS_INVALIDOS con errores[] por campo)
       mensajeria/   mensajeria.module.ts, rabbit.cliente.ts (conexión, topología, prefetch 10, reconexión), sobre.ts (sobre y MensajeInvalidoError),
                     consumidor.ts (reparte por `tipo`, reintentos con x-intentos y plataforma.fallidos), inbox.schema.ts, inbox.ts (procesarUnaVez),
-                    outbox.schema.ts, outbox.publicador.ts (cuando se publique el primer evento: 004 y 008)
+                    outbox.schema.ts, outbox.ts (Outbox.agregar: sobre común en outbox_evento, solo dentro de una transacción),
+                    outbox.publicador.ts (OutboxPublicador: cada 1 s publica los pendientes en orden con RabbitCliente.publicar)
       mongo/        transaccion.ts (Transaccion.ejecutar y sesionActual(): la sesión viaja en AsyncLocalStorage),
                     decimal.ts (Decimal128 ↔ number: los `decimal` de datos.md)
   salud/                           # GET /salud (@Publico, no toca MongoDB ni RabbitMQ)
@@ -64,7 +65,7 @@ src/
     stock.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
-  utilidades/canal-prueba.ts       # doble del canal de RabbitMQ (CanalPrueba) y mensajes de prueba (sin servidor)
+  utilidades/canal-prueba.ts       # dobles del canal de RabbitMQ (CanalPrueba) y de RabbitCliente para el outbox (RabbitPrueba), y mensajes de prueba
   utilidades/obra-acceso-memoria.ts # repositorio de obra_acceso en memoria (unitarias)
   utilidades/material-memoria.ts   # repositorio de material en memoria (unitarias)
   utilidades/stock-memoria.ts      # repositorio de stock_obra en memoria (unitarias)
@@ -73,6 +74,7 @@ test/
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
   catalogo.e2e-spec.ts             # GET/POST/PUT /materiales con mongodb-memory-server
   stock.e2e-spec.ts                # GET /obras/{id}/stock y PUT .../minimo: upsert, estados, obra_acceso, roles, StockBajo
+  outbox.e2e-spec.ts               # Outbox.agregar (en transacción) y OutboxPublicador (orden, propiedades, sin conexión, reintento) con mongodb-memory-server
   acceso-obra.e2e-spec.ts          # consumidor de ObraRegistrada (inbox, reintentos, fallidos) y AccesoObraServicio con mongodb-memory-server y CanalPrueba
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
@@ -87,7 +89,7 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 - Cada petición se registra con su `X-Request-Id` (método, ruta sin la consulta, estado y duración); nunca se registran encabezados, tokens ni cuerpos.
 - Las reglas del negocio lanzan `ReglaNegocioError(codigo, mensaje, status)`; `problem-details.filter.ts` la convierte en Problem Details.
 - Acceso a una obra: los casos de uso que reciben un `obraId` importan `AccesoObraModule` y llaman a `AccesoObraServicio` con el `UsuarioAutenticado` (el servicio aplica `rolesEfectivos`): `exigirVer` para leer (003, 004, 006), `exigirRegistrarMovimientos` para `POST /movimientos` (004) y `filtrarVisibles` para listas de obras (009). La obra que no está en `obra_acceso` o que el usuario no ve responde `404 OBRA_NO_ENCONTRADA`, también para `admin`.
-- Escrituras con varias colecciones (movimiento + stock + outbox) en una transacción de MongoDB (`transaccion.ts`). Los repositorios pasan `sesionActual()` a cada operación (`.session(sesionActual())` o `{ session: sesionActual() }`); fuera de una transacción es `null` y no cambia nada.
+- Escrituras con varias colecciones (movimiento + stock + outbox) en una transacción de MongoDB (`transaccion.ts`). Los eventos se publican siempre por el outbox: el caso de uso llama a `Outbox.agregar(tipo, datos, correlacionId)` dentro de `Transaccion.ejecutar`; nunca publica directo en RabbitMQ. Los repositorios pasan `sesionActual()` a cada operación (`.session(sesionActual())` o `{ session: sesionActual() }`); fuera de una transacción es `null` y no cambia nada.
 - Mensajes recibidos: cada módulo que escucha un tipo tiene un manejador (`ManejadorMensaje`) en su `infraestructura/` que se registra en `ConsumidorMensajes` en `onModuleInit`, valida `datos` (si faltan, `MensajeInvalidoError`) y llama a su caso de uso. El consumidor lo ejecuta dentro del inbox (`mensaje_procesado` + escrituras del caso de uso en una transacción).
 - Nombres de archivo en `kebab-case` con sufijo de tipo (`.caso-uso.ts`, `.controller.ts`, `.schema.ts`, `.dto.ts`); clases en español.
 
@@ -99,4 +101,4 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 
 - Unitarias del dominio y de los casos de uso con repositorios en memoria.
 - `test/*.e2e-spec.ts` con `mongodb-memory-server` (replica set) y tokens firmados con una clave de prueba.
-- `npm test` y `npm run test:e2e`.
+- `npm test` y `npm run test:e2e` (los archivos e2e corren de a uno: cada uno levanta su MongoDB en memoria).

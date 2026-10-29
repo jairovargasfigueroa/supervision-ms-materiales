@@ -78,7 +78,7 @@ Copia de las asignaciones de cada obra; llega con `ObraRegistrada`. Sirve para v
 | creado_en | date | |
 | publicado_en | date | nulo hasta publicarse |
 
-Se escribe en la misma transacción de MongoDB que el movimiento o el cierre (requiere MongoDB como *replica set*, también en desarrollo).
+Se escribe en la misma transacción de MongoDB que el dato que lo origina: el mínimo (`StockBajo`, 003), el movimiento (004) o el cierre (008) (requiere MongoDB como *replica set*, también en desarrollo). `OutboxPublicador` publica los pendientes cada segundo, en orden de `creado_en`, y pone `publicado_en` cuando el broker confirma.
 
 ### mensaje_procesado
 | Campo | Tipo | Notas |
@@ -91,6 +91,7 @@ Se escribe en la misma transacción de MongoDB que el movimiento o el cierre (re
 - `movimiento`: (`obra_id`, `periodo`), (`obra_id`, `material_id`), (`obra_id`, `partida_id`, `periodo`).
 - `material`: `codigo` único (`codigo_unico`).
 - `stock_obra`: `obra_id` (`por_obra`).
+- `outbox_evento`: (`publicado_en`, `creado_en`) (`pendientes`).
 
 ## Relaciones
 

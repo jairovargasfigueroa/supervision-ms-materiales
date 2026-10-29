@@ -8,6 +8,7 @@ import {
   Material,
 } from '../../../catalogo/dominio/material.js';
 import type { UsuarioAutenticado } from '../../../compartido/infraestructura/auth/usuario-autenticado.js';
+import type { Outbox } from '../../../compartido/infraestructura/mensajeria/outbox.js';
 import type { Transaccion } from '../../../compartido/infraestructura/mongo/transaccion.js';
 import { FijarMinimoCasoUso } from './fijar-minimo.caso-uso.js';
 import { ListarStockObraCasoUso } from './listar-stock-obra.caso-uso.js';
@@ -41,17 +42,36 @@ const transaccionDirecta = {
   ejecutar: <T>(trabajo: () => Promise<T>) => trabajo(),
 } as unknown as Transaccion;
 
+/** Outbox en memoria: guarda lo que se agregó. */
+class OutboxMemoria {
+  readonly agregados: {
+    tipo: string;
+    datos: Record<string, unknown>;
+    correlacionId?: string;
+  }[] = [];
+  agregar(
+    tipo: string,
+    datos: Record<string, unknown>,
+    correlacionId?: string,
+  ) {
+    this.agregados.push({ tipo, datos, correlacionId });
+    return Promise.resolve();
+  }
+}
+
 describe('Casos de uso del stock', () => {
   let obras: ObraAccesoRepositorioMemoria;
   let materiales: MaterialRepositorioMemoria;
   let stock: StockRepositorioMemoria;
   let listar: ListarStockObraCasoUso;
   let fijar: FijarMinimoCasoUso;
+  let outbox: OutboxMemoria;
 
   beforeEach(async () => {
     obras = new ObraAccesoRepositorioMemoria();
     materiales = new MaterialRepositorioMemoria();
     stock = new StockRepositorioMemoria();
+    outbox = new OutboxMemoria();
     const acceso = new AccesoObraServicio(obras);
     listar = new ListarStockObraCasoUso(acceso, stock, materiales);
     fijar = new FijarMinimoCasoUso(
@@ -59,6 +79,7 @@ describe('Casos de uso del stock', () => {
       stock,
       materiales,
       transaccionDirecta,
+      outbox as unknown as Outbox,
     );
     await obras.guardar(
       new ObraAcceso(
@@ -160,6 +181,51 @@ describe('Casos de uso del stock', () => {
         fijar.ejecutar(OBRA, 'viejo', 1, admin),
       ).rejects.toMatchObject({ codigo: 'MATERIAL_INACTIVO', status: 422 });
       expect(stock.filas.size).toBe(0);
+    });
+  });
+  describe('StockBajo al cruzar el mínimo', () => {
+    it('mínimo nuevo sobre cantidad 0 (sin fila) → StockBajo con obraId, materialId, cantidad y minimo', async () => {
+      await fijar.ejecutar(OBRA, 'cemento', 50, admin, 'flujo-1');
+      expect(outbox.agregados).toEqual([
+        {
+          tipo: 'StockBajo',
+          datos: {
+            obraId: OBRA,
+            materialId: 'cemento',
+            cantidad: 0,
+            minimo: 50,
+          },
+          correlacionId: 'flujo-1',
+        },
+      ]);
+    });
+
+    it('de JUSTO u OK a BAJO → StockBajo', async () => {
+      stock.poner(OBRA, 'cemento', 120, 100);
+      await fijar.ejecutar(OBRA, 'cemento', 121, admin);
+      expect(outbox.agregados).toHaveLength(1);
+      expect(outbox.agregados[0].datos).toMatchObject({
+        cantidad: 120,
+        minimo: 121,
+      });
+    });
+
+    it('si ya estaba BAJO no se vuelve a avisar', async () => {
+      stock.poner(OBRA, 'cemento', 10, 100);
+      await fijar.ejecutar(OBRA, 'cemento', 200, admin);
+      expect(outbox.agregados).toEqual([]);
+    });
+
+    it('si no queda BAJO (igual al mínimo es JUSTO) no avisa', async () => {
+      stock.poner(OBRA, 'cemento', 100, 0);
+      await fijar.ejecutar(OBRA, 'cemento', 100, admin);
+      await fijar.ejecutar(OBRA, 'arena', 0, admin);
+      expect(outbox.agregados).toEqual([]);
+    });
+
+    it('con un error (material inactivo) no se agrega nada', async () => {
+      await expect(fijar.ejecutar(OBRA, 'viejo', 50, admin)).rejects.toThrow();
+      expect(outbox.agregados).toEqual([]);
     });
   });
 });

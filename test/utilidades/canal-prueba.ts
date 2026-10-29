@@ -112,3 +112,46 @@ export function datosObraRegistrada(
     ...cambios,
   };
 }
+
+/** Lo que el outbox publicó en el exchange `plataforma`. */
+export interface PublicadoExchange {
+  clave: string;
+  cuerpo: Record<string, unknown>;
+  opciones: Options.Publish;
+}
+
+/**
+ * Doble de `RabbitCliente` para el publicador del outbox: guarda lo publicado (sin servidor).
+ * `conectado = false` simula RabbitMQ caído; `fallarEn` hace fallar la publicación número N.
+ */
+export class RabbitPrueba {
+  conectado = true;
+  readonly publicados: PublicadoExchange[] = [];
+  fallarEn?: number;
+  private intentos = 0;
+
+  /** Vuelve al estado inicial (conectado, sin publicados ni fallas). */
+  reiniciar(): void {
+    this.conectado = true;
+    this.publicados.length = 0;
+    this.fallarEn = undefined;
+    this.intentos = 0;
+  }
+
+  publicar(
+    clave: string,
+    contenido: Buffer,
+    opciones: Options.Publish,
+  ): Promise<void> {
+    this.intentos++;
+    if (this.fallarEn === this.intentos) {
+      return Promise.reject(new Error('el broker no confirmó'));
+    }
+    this.publicados.push({
+      clave,
+      cuerpo: JSON.parse(contenido.toString('utf8')) as Record<string, unknown>,
+      opciones,
+    });
+    return Promise.resolve();
+  }
+}

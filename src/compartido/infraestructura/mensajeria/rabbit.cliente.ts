@@ -10,6 +10,7 @@ import {
   type ChannelModel,
   type ConfirmChannel,
   type ConsumeMessage,
+  type Options,
 } from 'amqplib';
 import {
   type CanalMensajeria,
@@ -35,7 +36,8 @@ const ESPERA_RECONEXION_MS = 5000;
  * `plataforma`, colas `materiales` y `plataforma.fallidos`, y los enlaces de la cola, con los
  * mismos argumentos que `infra/rabbitmq/definiciones.json`: durables y sin argumentos) y consume
  * la cola con confirmación manual. La app arranca aunque RabbitMQ no esté: reintenta cada 5 s
- * y vuelve a conectar si se corta. `GET /salud` no depende de esto.
+ * y vuelve a conectar si se corta. `GET /salud` no depende de esto. Por el mismo canal (con
+ * confirmaciones del broker) publica los eventos del outbox (`publicar`).
  */
 @Injectable()
 export class RabbitCliente
@@ -43,6 +45,7 @@ export class RabbitCliente
 {
   private readonly registro = new Logger('RabbitMQ');
   private conexion?: ChannelModel;
+  private canal?: ConfirmChannel;
   private reconexion?: NodeJS.Timeout;
   private cerrando = false;
 
@@ -53,6 +56,29 @@ export class RabbitCliente
 
   onApplicationBootstrap(): void {
     void this.conectar();
+  }
+
+  /** `true` mientras hay canal abierto (se puede publicar). */
+  get conectado(): boolean {
+    return this.canal !== undefined;
+  }
+
+  /**
+   * Publica en el exchange `plataforma` con esa clave y espera la confirmación del broker. Sin
+   * conexión, o si el broker no la acepta, falla (el outbox lo reintenta).
+   */
+  publicar(
+    clave: string,
+    contenido: Buffer,
+    opciones: Options.Publish,
+  ): Promise<void> {
+    const canal = this.canal;
+    if (!canal) return Promise.reject(new Error('Sin conexión a RabbitMQ.'));
+    return new Promise<void>((resolver, rechazar) => {
+      canal.publish(EXCHANGE, clave, contenido, opciones, (error) =>
+        error ? rechazar(error as Error) : resolver(),
+      );
+    });
   }
 
   async onApplicationShutdown(): Promise<void> {
@@ -75,6 +101,7 @@ export class RabbitCliente
       );
       conexion.on('close', () => {
         this.conexion = undefined;
+        this.canal = undefined;
         if (!this.cerrando) {
           this.registro.warn('Se cerró la conexión; se vuelve a conectar.');
           this.programarReconexion();
@@ -86,6 +113,7 @@ export class RabbitCliente
       );
       // Si el broker cierra solo el canal, se cierra la conexión para volver a empezar.
       canal.on('close', () => {
+        this.canal = undefined;
         if (!this.cerrando) void conexion.close().catch(() => undefined);
       });
       await prepararTopologia(canal);
@@ -109,6 +137,7 @@ export class RabbitCliente
         },
         { noAck: false },
       );
+      this.canal = canal;
       this.registro.log(`Conectado; consumiendo la cola ${COLA}.`);
     } catch (error) {
       this.registro.warn(
