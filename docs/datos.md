@@ -51,7 +51,7 @@ El estado (`BAJO`, `JUSTO`, `OK`) no se guarda: se calcula al leer (reglas del n
 ### cierre_periodo
 | Campo | Tipo | Notas |
 |---|---|---|
-| _id | string | `obra_id` + `periodo` |
+| _id | string | `obra_id` + `:` + `periodo` (uno solo por obra y periodo) |
 | planilla_id | string | ref Obras |
 | estado | string | `CERRADO`, `REABIERTO` |
 | cerrado_en | date | |
@@ -88,7 +88,7 @@ Se escribe en la misma transacción de MongoDB que el dato que lo origina: el m�
 
 ## Índices previstos
 
-- `movimiento`: (`obra_id`, `periodo`), (`obra_id`, `material_id`), (`obra_id`, `partida_id`, `periodo`).
+- `movimiento`: (`obra_id`, `periodo`) (`por_obra_periodo`), (`obra_id`, `material_id`) (`por_obra_material`), (`obra_id`, `partida_id`, `periodo`) (`por_obra_partida_periodo`).
 - `material`: `codigo` único (`codigo_unico`).
 - `stock_obra`: `obra_id` (`por_obra`).
 - `outbox_evento`: (`publicado_en`, `creado_en`) (`pendientes`).

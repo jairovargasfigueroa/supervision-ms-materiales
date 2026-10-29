@@ -63,6 +63,16 @@ src/
     presentacion/
       stock.controller.ts, dto/fijar-minimo.dto.ts, dto/stock.respuesta.ts
     stock.module.ts
+  cierres/                         # cierres de periodo (cierre_periodo): los escribe la 008, los lee la 004
+    dominio/        cierre-periodo.ts (EstadoCierre CERRADO/REABIERTO)
+    infraestructura/
+      cierre-periodo.schema.ts (_id obraId:periodo)
+    cierres.module.ts
+  movimientos/                     # ingresos y salidas (movimiento), 004
+    dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision)
+    infraestructura/
+      movimiento.schema.ts (supera_stock, cerrado; índices por obra y periodo, material, partida y periodo)
+    movimientos.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   utilidades/canal-prueba.ts       # dobles del canal de RabbitMQ (CanalPrueba) y de RabbitCliente para el outbox (RabbitPrueba), y mensajes de prueba
