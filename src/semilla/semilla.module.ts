@@ -32,6 +32,7 @@ import {
 } from '../stock/infraestructura/stock-obra.schema.js';
 import { CargarSemilla } from './cargar-semilla.js';
 import { verificarGuarda } from './guarda.js';
+import { VaciarSemilla } from './vaciar.js';
 
 /**
  * Contexto de la semilla (011): solo la configuración y los esquemas de Mongoose, sin HTTP, sin
@@ -77,7 +78,7 @@ export class SemillaModule {
           { name: MensajeProcesado.name, schema: MensajeProcesadoSchema },
         ]),
       ],
-      providers: [Transaccion, CargarSemilla],
+      providers: [Transaccion, CargarSemilla, VaciarSemilla],
     };
   }
 }

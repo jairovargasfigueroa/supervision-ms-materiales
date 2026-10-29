@@ -15,6 +15,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "semilla": "nest build && node dist/semilla/main.js cargar",
+    "semilla:vaciar": "nest build && node dist/semilla/main.js vaciar",
     "lint": "oxlint src/ test/",
     "test": "vitest run",
     "test:watch": "vitest",
