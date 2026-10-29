@@ -28,8 +28,9 @@ src/
     presentacion/   salud.controller.ts
     salud.module.ts
   acceso-obra/                     # copia de asignaciones (obra_acceso), 002
-    dominio/        obra-acceso.ts (ObraAcceso, Asignaciones)
+    dominio/        obra-acceso.ts (ObraAcceso, Asignaciones; reglas puedeVer y puedeRegistrarMovimientos)
     aplicacion/
+      acceso-obra.servicio.ts (AccesoObraServicio, exportado: puedeVer, exigirVer, exigirRegistrarMovimientos, filtrarVisibles)
       puertos/      obra-acceso.repositorio.ts
       casos-uso/    registrar-obra-acceso.caso-uso.ts
     infraestructura/
@@ -65,13 +66,14 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 - Autorización por rol (001): cada ruta declara sus roles con `@Roles('admin', 'gerente')` (tabla de roles de `docs/contratos.md`). `RolesGuard` es global, corre después de `JwtGuard` y responde `403 SIN_PERMISO` si el usuario no tiene ninguno. Cuentan solo los roles que da `rolesEfectivos(roles, azp)` (convenciones, «Usuario con varios roles»): `azp = portal` → solo `cliente`; `erp` o `app-obra` → solo los internos; otro cliente (de servicio) → los del token tal cual. Toda regla que decida por rol (también la visibilidad de obras) usa esa función, nunca `usuario.roles` directo. Una ruta sin `@Roles()` exige solo token válido; las `@Publico()` no pasan por el rol.
 - Cada petición se registra con su `X-Request-Id` (método, ruta sin la consulta, estado y duración); nunca se registran encabezados, tokens ni cuerpos.
 - Las reglas del negocio lanzan `ReglaNegocioError(codigo, mensaje, status)`; `problem-details.filter.ts` la convierte en Problem Details.
+- Acceso a una obra: los casos de uso que reciben un `obraId` importan `AccesoObraModule` y llaman a `AccesoObraServicio` con el `UsuarioAutenticado` (el servicio aplica `rolesEfectivos`): `exigirVer` para leer (003, 004, 006), `exigirRegistrarMovimientos` para `POST /movimientos` (004) y `filtrarVisibles` para listas de obras (009). La obra que no está en `obra_acceso` o que el usuario no ve responde `404 OBRA_NO_ENCONTRADA`, también para `admin`.
 - Escrituras con varias colecciones (movimiento + stock + outbox) en una transacción de MongoDB (`transaccion.ts`). Los repositorios pasan `sesionActual()` a cada operación (`.session(sesionActual())` o `{ session: sesionActual() }`); fuera de una transacción es `null` y no cambia nada.
 - Mensajes recibidos: cada módulo que escucha un tipo tiene un manejador (`ManejadorMensaje`) en su `infraestructura/` que se registra en `ConsumidorMensajes` en `onModuleInit`, valida `datos` (si faltan, `MensajeInvalidoError`) y llama a su caso de uso. El consumidor lo ejecuta dentro del inbox (`mensaje_procesado` + escrituras del caso de uso en una transacción).
 - Nombres de archivo en `kebab-case` con sufijo de tipo (`.caso-uso.ts`, `.controller.ts`, `.schema.ts`, `.dto.ts`); clases en español.
 
 ## Ejemplo de punta a punta
 
-`POST /movimientos` → `MovimientosController.registrar(dto)` → `RegistrarMovimientoCasoUso.ejecutar(entrada, usuario)` → valida acceso (`AccesoObraServicio`) y periodo → en transacción: `MovimientoRepositorio.guardar`, `StockRepositorio.ajustar`, `Outbox.agregar` → `201`.
+`POST /movimientos` → `MovimientosController.registrar(dto)` → `RegistrarMovimientoCasoUso.ejecutar(entrada, usuario)` → valida acceso (`AccesoObraServicio.exigirRegistrarMovimientos`) y periodo → en transacción: `MovimientoRepositorio.guardar`, `StockRepositorio.ajustar`, `Outbox.agregar` → `201`.
 
 ## Pruebas
 
