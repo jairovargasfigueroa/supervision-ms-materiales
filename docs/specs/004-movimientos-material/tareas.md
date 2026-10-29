@@ -8,4 +8,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] `POST /movimientos` en transacción: idempotencia, acceso, periodo en `America/La_Paz`, periodo cerrado, actualización de stock con versión
 - [x] Outbox `StockBajo` y `MovimientoRegistrado`
 - [x] `GET /obras/{obraId}/movimientos`
-- [ ] Pruebas de la spec
+- [x] Pruebas de la spec

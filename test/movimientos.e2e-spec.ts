@@ -479,4 +479,149 @@ describe('Movimientos de material (e2e)', () => {
       ).toBe('OBRA_NO_ENCONTRADA');
     });
   });
+
+  describe('Validación, acceso y stock (pruebas de la spec 004)', () => {
+    const errores = (cuerpo: { errores?: { campo: string }[] }) =>
+      (cuerpo.errores ?? []).map((e) => e.campo);
+
+    it('salida sin partida → 400 DATOS_INVALIDOS (partidaId)', async () => {
+      const respuesta = await registrar(
+        salida({ partidaId: undefined }),
+      ).expect(400);
+      expect(respuesta.body.codigo).toBe('DATOS_INVALIDOS');
+      expect(errores(respuesta.body)).toContain('partidaId');
+      expect(
+        await prueba.conexion.collection('movimiento').countDocuments(),
+      ).toBe(0);
+    });
+
+    it.each([
+      ['cantidad 0', { cantidad: 0 }, 'cantidad'],
+      ['cantidad negativa', { cantidad: -1 }, 'cantidad'],
+      ['cantidad con 4 decimales', { cantidad: 1.0001 }, 'cantidad'],
+      ['cantidad como texto', { cantidad: '5' }, 'cantidad'],
+      ['id que no es UUID v4', { id: 'mov-1' }, 'id'],
+      ['tipo desconocido', { tipo: 'AJUSTE' }, 'tipo'],
+      ['obraId que no es UUID', { obraId: 'obra-1' }, 'obraId'],
+      ['materialId vacío', { materialId: '' }, 'materialId'],
+      [
+        'registradoEn sin zona',
+        { registradoEn: '2026-11-15T14:00:00' },
+        'registradoEn',
+      ],
+      ['registradoEn sin hora', { registradoEn: '2026-11-15' }, 'registradoEn'],
+      ['registradoEn que falta', { registradoEn: undefined }, 'registradoEn'],
+      ['partidaId en un ingreso', { partidaId: PARTIDA_ID }, 'partidaId'],
+      [
+        'nota de remisión vacía',
+        { notaRemision: { numero: '  ' } },
+        'notaRemision.numero',
+      ],
+    ])('%s → 400', async (_caso, cambios, campo) => {
+      const respuesta = await registrar(ingreso(cambios)).expect(400);
+      expect(respuesta.body.codigo).toBe('DATOS_INVALIDOS');
+      expect(errores(respuesta.body)).toContain(campo);
+    });
+
+    it('nota de remisión en una salida → 400', async () => {
+      const respuesta = await registrar(
+        salida({ notaRemision: { numero: 'NR-1' } }),
+      ).expect(400);
+      expect(errores(respuesta.body)).toContain('notaRemision');
+    });
+
+    it('acepta cantidades con 3 decimales y ingreso sin nota de remisión', async () => {
+      const respuesta = await registrar(ingreso({ cantidad: 0.125 })).expect(
+        201,
+      );
+      expect(respuesta.body.stock.cantidad).toBe(0.125);
+      const guardado = await prueba.conexion
+        .collection('movimiento')
+        .findOne({ _id: respuesta.body.id as never });
+      expect(guardado?.nota_remision).toBeNull();
+    });
+
+    it('almacenero no asignado → 404 OBRA_NO_ENCONTRADA (no se revela que existe)', async () => {
+      const respuesta = await registrar(ingreso(), tokens.almacenero2).expect(
+        404,
+      );
+      expect(respuesta.body.codigo).toBe('OBRA_NO_ENCONTRADA');
+      const otra = await registrar(ingreso({ obraId: OTRA_OBRA_ID })).expect(
+        404,
+      );
+      expect(otra.body.codigo).toBe('OBRA_NO_ENCONTRADA');
+    });
+
+    it('un id repetido de otra obra no se le devuelve a otro almacenero', async () => {
+      const cuerpo = ingreso();
+      await registrar(cuerpo).expect(201);
+      const respuesta = await registrar(cuerpo, tokens.almacenero2).expect(404);
+      expect(respuesta.body.codigo).toBe('OBRA_NO_ENCONTRADA');
+    });
+
+    it.each(['admin', 'gerente', 'residente', 'maestro'])(
+      '%s (aunque esté asignado) → 403 SIN_PERMISO',
+      async (rol) => {
+        const respuesta = await registrar(ingreso(), tokens[rol]).expect(403);
+        expect(respuesta.body.codigo).toBe('SIN_PERMISO');
+      },
+    );
+
+    it('sin token → 401 NO_AUTENTICADO', async () => {
+      await request(servidor())
+        .post('/movimientos')
+        .send(ingreso())
+        .expect(401);
+    });
+
+    it('la primera salida de un material sin fila deja el stock negativo y avisa StockBajo', async () => {
+      const respuesta = await registrar(salida({ cantidad: 2 })).expect(201);
+      expect(respuesta.body).toMatchObject({
+        superaStock: true,
+        stock: { cantidad: -2, minimo: 0, estado: 'BAJO' },
+      });
+      const tipos = (
+        await prueba.conexion.collection('outbox_evento').find().toArray()
+      ).map((e) => e.tipo);
+      expect(tipos.sort()).toEqual(['MovimientoRegistrado', 'StockBajo']);
+    });
+
+    it('el stock de la obra (GET /obras/{id}/stock) refleja los movimientos', async () => {
+      await registrar(ingreso({ cantidad: 130 })).expect(201);
+      await request(servidor())
+        .put('/obras/' + OBRA_ID + '/stock/' + cementoId + '/minimo')
+        .set('Authorization', 'Bearer ' + tokens.admin)
+        .send({ minimo: 100 })
+        .expect(200);
+      await registrar(salida({ cantidad: 20.5 })).expect(201);
+      const respuesta = await request(servidor())
+        .get('/obras/' + OBRA_ID + '/stock')
+        .set('Authorization', 'Bearer ' + tokens.almacenero)
+        .expect(200);
+      expect(respuesta.body).toEqual([
+        expect.objectContaining({
+          materialId: cementoId,
+          cantidad: 109.5,
+          minimo: 100,
+          estado: 'JUSTO',
+        }),
+      ]);
+    });
+
+    it('un envío repetido después de cerrar el periodo o desactivar el material sigue dando 200', async () => {
+      const cuerpo = ingreso();
+      await registrar(cuerpo).expect(201);
+      await cerrarPeriodo('2026-11');
+      await request(servidor())
+        .put('/materiales/' + cementoId)
+        .set('Authorization', 'Bearer ' + tokens.admin)
+        .send({ ...cemento, activo: false })
+        .expect(200);
+      const respuesta = await registrar(cuerpo).expect(200);
+      expect(respuesta.body).toMatchObject({
+        id: cuerpo.id,
+        periodo: '2026-11',
+      });
+    });
+  });
 });
