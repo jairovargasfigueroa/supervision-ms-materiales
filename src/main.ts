@@ -11,6 +11,8 @@ async function bootstrap() {
   // Cuerpo JSON de hasta 1 MB (convenciones, «Seguridad»); más grande responde 413
   app.useBodyParser('json', { limit: '1mb' });
   app.disable('x-powered-by');
+  // Cierra la conexión a RabbitMQ y a MongoDB al detener el proceso (Ctrl+C, docker stop)
+  app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 8082);
 }
 await bootstrap();

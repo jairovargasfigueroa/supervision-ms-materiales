@@ -20,8 +20,10 @@ src/
                     usuario-autenticado.ts, roles.guard.ts (guardia global, después de JwtGuard), roles.decorator.ts (@Roles),
                     roles-efectivos.ts (función pura: roles que cuentan según azp), usuario-actual.decorator.ts (@UsuarioActual)
       http/         problem-details.filter.ts, request-id.middleware.ts, solicitud.ts (tipo de la petición con requestId y usuario)
-      mensajeria/   mensajeria.module.ts, rabbit.cliente.ts, sobre.ts, outbox.schema.ts, outbox.publicador.ts, inbox.schema.ts
-      mongo/        transaccion.ts (ayuda para sesiones/transacciones)
+      mensajeria/   mensajeria.module.ts, rabbit.cliente.ts (conexión, topología, prefetch 10, reconexión), sobre.ts (sobre y MensajeInvalidoError),
+                    consumidor.ts (reparte por `tipo`, reintentos con x-intentos y plataforma.fallidos), inbox.schema.ts, inbox.ts (procesarUnaVez),
+                    outbox.schema.ts, outbox.publicador.ts (cuando se publique el primer evento: 004 y 008)
+      mongo/        transaccion.ts (Transaccion.ejecutar y sesionActual(): la sesión viaja en AsyncLocalStorage)
   salud/                           # GET /salud (@Publico, no toca MongoDB ni RabbitMQ)
     presentacion/   salud.controller.ts
     salud.module.ts
@@ -38,6 +40,7 @@ src/
     catalogo.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
+  utilidades/canal-prueba.ts       # doble del canal de RabbitMQ (CanalPrueba) y mensajes de prueba (sin servidor)
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
   catalogo.e2e-spec.ts             # API completa con mongodb-memory-server
@@ -53,7 +56,8 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 - Autorización por rol (001): cada ruta declara sus roles con `@Roles('admin', 'gerente')` (tabla de roles de `docs/contratos.md`). `RolesGuard` es global, corre después de `JwtGuard` y responde `403 SIN_PERMISO` si el usuario no tiene ninguno. Cuentan solo los roles que da `rolesEfectivos(roles, azp)` (convenciones, «Usuario con varios roles»): `azp = portal` → solo `cliente`; `erp` o `app-obra` → solo los internos; otro cliente (de servicio) → los del token tal cual. Toda regla que decida por rol (también la visibilidad de obras) usa esa función, nunca `usuario.roles` directo. Una ruta sin `@Roles()` exige solo token válido; las `@Publico()` no pasan por el rol.
 - Cada petición se registra con su `X-Request-Id` (método, ruta sin la consulta, estado y duración); nunca se registran encabezados, tokens ni cuerpos.
 - Las reglas del negocio lanzan `ReglaNegocioError(codigo, mensaje, status)`; `problem-details.filter.ts` la convierte en Problem Details.
-- Escrituras con varias colecciones (movimiento + stock + outbox) en una transacción de MongoDB (`transaccion.ts`).
+- Escrituras con varias colecciones (movimiento + stock + outbox) en una transacción de MongoDB (`transaccion.ts`). Los repositorios pasan `sesionActual()` a cada operación (`.session(sesionActual())` o `{ session: sesionActual() }`); fuera de una transacción es `null` y no cambia nada.
+- Mensajes recibidos: cada módulo que escucha un tipo tiene un manejador (`ManejadorMensaje`) en su `infraestructura/` que se registra en `ConsumidorMensajes` en `onModuleInit`, valida `datos` (si faltan, `MensajeInvalidoError`) y llama a su caso de uso. El consumidor lo ejecuta dentro del inbox (`mensaje_procesado` + escrituras del caso de uso en una transacción).
 - Nombres de archivo en `kebab-case` con sufijo de tipo (`.caso-uso.ts`, `.controller.ts`, `.schema.ts`, `.dto.ts`); clases en español.
 
 ## Ejemplo de punta a punta
