@@ -68,6 +68,14 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 | `evento.materiales.StockBajo` | publica | `obraId, materialId, cantidad, minimo` (capa 2) |
 | `evento.materiales.MovimientoRegistrado` | publica | `movimientoId, obraId, materialId, tipo, cantidad, partidaId, periodo, superaStock, registradoEn` (capa 4) |
 
+### Cómo se consume (cola `materiales`)
+
+- Exchange `plataforma` (topic, durable) y colas `materiales` y `plataforma.fallidos` (durables, sin argumentos) declaradas por infra; al conectar, el servicio las comprueba con los mismos argumentos y enlaza `materiales` a las tres claves que escucha. Prefetch 10 y confirmación manual.
+- Inbox: cada mensaje se aplica en una transacción de MongoDB que inserta su `id` en `mensaje_procesado` y hace las escrituras; un `id` repetido se confirma sin hacer nada.
+- Si aplicar el mensaje falla: se vuelve a publicar en la cola `materiales` (exchange por defecto) con el encabezado `x-intentos` + 1 y se confirma el original; al tercer fallo se publica en `plataforma.fallidos`.
+- Van directo a `plataforma.fallidos`: un cuerpo que no es JSON o sin sobre válido (`id`, `tipo`, `version` 1, `datos`), `datos` incompletos y los tipos que todavía no tienen consumidor (`CerrarConsumos` y `ReabrirConsumos` hasta la 008).
+- En `plataforma.fallidos` el cuerpo es el original sin cambios y los encabezados dicen por qué: `x-error` (texto del error), `x-intentos` (fallos), `x-cola-origen` (`materiales`) y `x-clave-origen` (clave de enrutamiento original).
+
 ## Herramientas MCP (capa 5, solo lectura)
 
 `consumos_partida`, `stock_obra`. Se especifican en la capa 5.
