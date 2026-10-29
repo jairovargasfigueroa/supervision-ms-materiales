@@ -2,8 +2,11 @@ import { Types } from 'mongoose';
 import request from 'supertest';
 import { AccesoObraModule } from '../src/acceso-obra/acceso-obra.module.js';
 import { CatalogoModule } from '../src/catalogo/catalogo.module.js';
+import { Outbox } from '../src/compartido/infraestructura/mensajeria/outbox.js';
+import { OutboxPublicador } from '../src/compartido/infraestructura/mensajeria/outbox.publicador.js';
 import { StockModule } from '../src/stock/stock.module.js';
 import { crearAppPrueba, type AppPrueba } from './utilidades/app-prueba.js';
+import { RabbitPrueba } from './utilidades/canal-prueba.js';
 import { AZP } from './utilidades/tokens-prueba.js';
 
 const OBRA_ID = 'b2c3d4e5-0000-4000-8000-000000000001';
@@ -22,13 +25,18 @@ describe('Stock por obra (e2e)', () => {
   let prueba: AppPrueba;
   const tokens: Record<string, string> = {};
   let cementoId: string;
+  let rabbit: RabbitPrueba;
+  let publicador: OutboxPublicador;
 
   beforeAll(async () => {
-    prueba = await crearAppPrueba([
-      AccesoObraModule,
-      CatalogoModule,
-      StockModule,
-    ]);
+    rabbit = new RabbitPrueba();
+    prueba = await crearAppPrueba(
+      [AccesoObraModule, CatalogoModule, StockModule],
+      rabbit,
+    );
+    publicador = prueba.modulo.get(OutboxPublicador);
+    // Sin el temporizador de 1 s: cada prueba publica cuando quiere (publicarPendientes).
+    publicador.onModuleDestroy();
     tokens.admin = await prueba.claves.firmarConRoles(['admin']);
     tokens.gerente = await prueba.claves.firmarConRoles(['gerente']);
     for (const [rol, sub, azp] of [
@@ -61,6 +69,8 @@ describe('Stock por obra (e2e)', () => {
   });
 
   beforeEach(async () => {
+    vi.restoreAllMocks();
+    rabbit.reiniciar();
     await prueba.vaciar();
     await prueba.conexion.collection('obra_acceso').insertOne({
       _id: OBRA_ID as never,
@@ -234,6 +244,130 @@ describe('Stock por obra (e2e)', () => {
 
     it('cliente (portal) → 403 SIN_PERMISO', async () => {
       await verStock(OBRA_ID, tokens.cliente).expect(403);
+    });
+  });
+
+  describe('Estados en los bordes (reglas del negocio)', () => {
+    it.each([
+      ['99.999', 'BAJO'],
+      ['100', 'JUSTO'], // igual al mínimo
+      ['125', 'JUSTO'], // 1,25 × mínimo
+      ['125.001', 'OK'], // por encima
+    ])('cantidad %s con mínimo 100 → %s', async (cantidad, estado) => {
+      await fijarMinimo(100).expect(200);
+      await ponerCantidad(cantidad);
+      const respuesta = await verStock().expect(200);
+      expect(respuesta.body).toEqual([
+        expect.objectContaining({
+          cantidad: Number(cantidad),
+          minimo: 100,
+          estado,
+        }),
+      ]);
+    });
+  });
+
+  describe('StockBajo (outbox)', () => {
+    const eventos = () =>
+      prueba.conexion
+        .collection('outbox_evento')
+        .find({}, { sort: { creado_en: 1 } })
+        .toArray();
+
+    it('fijar un mínimo que deja el stock BAJO guarda StockBajo y el publicador lo envía a RabbitMQ', async () => {
+      const flujo = crypto.randomUUID();
+      await fijarMinimo(100).set('X-Request-Id', flujo).expect(200);
+
+      const [evento, ...otros] = await eventos();
+      expect(otros).toEqual([]);
+      expect(evento).toMatchObject({
+        tipo: 'StockBajo',
+        publicado_en: null,
+        payload: {
+          id: evento._id,
+          tipo: 'StockBajo',
+          version: 1,
+          origen: 'materiales',
+          correlacionId: flujo,
+          datos: {
+            obraId: OBRA_ID,
+            materialId: cementoId,
+            cantidad: 0,
+            minimo: 100,
+          },
+        },
+      });
+
+      expect(await publicador.publicarPendientes()).toBe(1);
+      expect(rabbit.publicados).toEqual([
+        {
+          clave: 'evento.materiales.StockBajo',
+          cuerpo: evento.payload,
+          opciones: {
+            persistent: true,
+            contentType: 'application/json',
+            messageId: evento._id,
+          },
+        },
+      ]);
+      expect((await eventos())[0].publicado_en).toBeInstanceOf(Date);
+    });
+
+    it('si ya estaba BAJO no se vuelve a publicar; al volver a cruzar, sí', async () => {
+      await fijarMinimo(100).expect(200); // 0 < 100: BAJO (1)
+      await fijarMinimo(150).expect(200); // sigue BAJO
+      await ponerCantidad('150');
+      await fijarMinimo(150).expect(200); // JUSTO
+      await fijarMinimo(150.001).expect(200); // BAJO otra vez (2)
+
+      const lista = await eventos();
+      expect(lista.map((e) => e.payload.datos)).toEqual([
+        { obraId: OBRA_ID, materialId: cementoId, cantidad: 0, minimo: 100 },
+        {
+          obraId: OBRA_ID,
+          materialId: cementoId,
+          cantidad: 150,
+          minimo: 150.001,
+        },
+      ]);
+    });
+
+    it('un mínimo que no deja el stock BAJO no publica nada', async () => {
+      await fijarMinimo(0).expect(200); // cantidad 0 = mínimo 0: JUSTO
+      await ponerCantidad('80');
+      await fijarMinimo(70).expect(200); // OK
+      expect(await eventos()).toEqual([]);
+    });
+
+    it('los errores (404, 422, 403) no guardan nada', async () => {
+      await fijarMinimo(100, 'no-existe').expect(404);
+      await fijarMinimo(100, cementoId, OTRA_OBRA_ID).expect(404);
+      await fijarMinimo(100, cementoId, OBRA_ID, tokens.gerente).expect(403);
+      expect(await eventos()).toEqual([]);
+      expect(
+        await prueba.conexion.collection('stock_obra').countDocuments(),
+      ).toBe(0);
+    });
+
+    it('si falla guardar el evento, tampoco queda el mínimo (misma transacción)', async () => {
+      vi.spyOn(prueba.modulo.get(Outbox), 'agregar').mockRejectedValueOnce(
+        new Error('MongoDB no responde'),
+      );
+      const respuesta = await fijarMinimo(100).expect(500);
+      expect(respuesta.body.codigo).toBe('ERROR_INTERNO');
+      expect(
+        await prueba.conexion.collection('stock_obra').countDocuments(),
+      ).toBe(0);
+      expect(await eventos()).toEqual([]);
+    });
+
+    it('sin conexión a RabbitMQ queda pendiente y sale al reconectar', async () => {
+      rabbit.conectado = false;
+      await fijarMinimo(100).expect(200);
+      expect(await publicador.publicarPendientes()).toBe(0);
+      rabbit.conectado = true;
+      expect(await publicador.publicarPendientes()).toBe(1);
+      expect(rabbit.publicados).toHaveLength(1);
     });
   });
 });

@@ -8,4 +8,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] `GET/POST/PUT /materiales` con normalización del código y errores
 - [x] `GET /obras/{obraId}/stock` y `PUT .../minimo` (upsert) con acceso por `obra_acceso`
 - [x] Outbox `StockBajo` al cruzar el mínimo
-- [ ] Pruebas de la spec
+- [x] Pruebas de la spec
