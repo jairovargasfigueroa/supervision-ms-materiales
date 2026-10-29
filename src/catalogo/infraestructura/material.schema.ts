@@ -39,6 +39,14 @@ export class MaterialDocumento {
   @Prop({ type: SchemaTypes.Decimal128, required: true })
   precio_referencial: Types.Decimal128;
 
+  /**
+   * Proveedor habitual (ref Finanzas, capa 2); nulo si no tiene. Hoy solo lo escribe la semilla
+   * (011); la API lo expone en la 201. Es opcional para que crear o editar un material por la
+   * API no lo borre.
+   */
+  @Prop({ type: String, default: null })
+  proveedor_habitual_id?: string | null;
+
   @Prop({ type: Boolean, required: true })
   activo: boolean;
 
