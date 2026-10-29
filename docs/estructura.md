@@ -51,15 +51,28 @@ src/
       materiales.controller.ts, dto/crear-material.dto.ts, dto/actualizar-material.dto.ts, dto/listar-materiales.dto.ts,
       dto/material.respuesta.ts
     catalogo.module.ts
+  stock/                           # stock por obra (stock_obra), 003
+    dominio/        stock-obra.ts (StockObra, calcularEstado BAJO/JUSTO/OK, cruzaAlBajo)
+    aplicacion/
+      fila-stock.ts (stock + material, para las respuestas)
+      puertos/      stock.repositorio.ts (interfaz + token, exportado para movimientos)
+      casos-uso/    listar-stock-obra.caso-uso.ts, fijar-minimo.caso-uso.ts (upsert en transacción)
+    infraestructura/
+      stock-obra.schema.ts (_id obraId:materialId), stock.repositorio.mongo.ts (fijarMinimo atómico: devuelve la fila anterior)
+    presentacion/
+      stock.controller.ts, dto/fijar-minimo.dto.ts, dto/stock.respuesta.ts
+    stock.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   utilidades/canal-prueba.ts       # doble del canal de RabbitMQ (CanalPrueba) y mensajes de prueba (sin servidor)
   utilidades/obra-acceso-memoria.ts # repositorio de obra_acceso en memoria (unitarias)
   utilidades/material-memoria.ts   # repositorio de material en memoria (unitarias)
+  utilidades/stock-memoria.ts      # repositorio de stock_obra en memoria (unitarias)
   utilidades/app-prueba.ts         # app HTTP con mongodb-memory-server, tokens de prueba y doble de RabbitCliente (e2e)
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
-  catalogo.e2e-spec.ts             # API completa con mongodb-memory-server
+  catalogo.e2e-spec.ts             # GET/POST/PUT /materiales con mongodb-memory-server
+  stock.e2e-spec.ts                # GET /obras/{id}/stock y PUT .../minimo: upsert, estados, obra_acceso, roles, StockBajo
   acceso-obra.e2e-spec.ts          # consumidor de ObraRegistrada (inbox, reintentos, fallidos) y AccesoObraServicio con mongodb-memory-server y CanalPrueba
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```

@@ -31,11 +31,12 @@ Errores: `400` · `404 MATERIAL_NO_ENCONTRADO` · `409 CODIGO_MATERIAL_REPETIDO`
 ### GET /obras/{obraId}/stock · 003, 004
 Roles: internos que pueden ver la obra (`obra_acceso`).
 `[{ "materialId", "codigo", "nombre", "unidad", "unidadPlural", "cantidad": 120.0, "minimo": 100.0, "estado": "JUSTO" }]`
-Errores: `404 OBRA_NO_ENCONTRADA`.
+Un elemento por material con movimientos o mínimo en la obra (también los materiales desactivados), ordenados por `codigo`. `estado` se calcula al leer: `BAJO` si cantidad < mínimo; `JUSTO` si mínimo ≤ cantidad ≤ 1,25 × mínimo; `OK` si es mayor.
+Errores: `404 OBRA_NO_ENCONTRADA` (la obra no está en `obra_acceso` o el usuario no la ve; también para `admin`).
 
 ### PUT /obras/{obraId}/stock/{materialId}/minimo · 003
-Roles: `admin`. Recibe `{ "minimo": 100 }`. Devuelve `200` con la fila de stock.
-Errores: `404 OBRA_NO_ENCONTRADA` · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO`.
+Roles: `admin`. Recibe `{ "minimo": 100 }` (número ≥ 0 con hasta 3 decimales). *Upsert*: si el material no tenía fila en la obra, la crea con cantidad 0. Devuelve `200` con la fila de stock (mismo formato que un elemento de `GET /obras/{obraId}/stock`).
+Errores, en este orden: `400` · `404 OBRA_NO_ENCONTRADA` · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO`.
 
 ### POST /movimientos · 004
 Roles: `almacenero` asignado.

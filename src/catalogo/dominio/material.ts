@@ -87,3 +87,12 @@ export function materialNoEncontrado(): ReglaNegocioError {
     404,
   );
 }
+
+/** `422 MATERIAL_INACTIVO`: fijar mínimo (003) o registrar un movimiento (004) con un material desactivado. */
+export function materialInactivo(): ReglaNegocioError {
+  return new ReglaNegocioError(
+    'MATERIAL_INACTIVO',
+    'El material está desactivado; no se puede usar en movimientos ni fijarle un mínimo.',
+    422,
+  );
+}
