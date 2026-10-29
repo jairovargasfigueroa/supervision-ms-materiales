@@ -8,7 +8,7 @@ Fuente para este servicio. La copia general está en `docs/contratos/` de la car
 Sin token · `200 {"estado":"ok"}`
 
 ### Token y `X-Request-Id` (todas las rutas)
-- Token de Keycloak en `Authorization: Bearer …`: se valida firma (JWKS del realm), vencimiento, emisor `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}` y audiencia `plataforma-api`. Sin token o con uno inválido: `401 NO_AUTENTICADO` (también en rutas que no existen). Con token válido, una ruta que no existe responde `404 RUTA_NO_ENCONTRADA`.
+- Token de Keycloak en `Authorization: Bearer …`: se valida firma (JWKS del realm), vencimiento, emisor `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}` y audiencia `plataforma-api`. Sin token o con uno inválido: `401 NO_AUTENTICADO` (si Keycloak no responde al pedir el JWKS: `503 SERVICIO_NO_DISPONIBLE`) (también en rutas que no existen). Con token válido, una ruta que no existe responde `404 RUTA_NO_ENCONTRADA`.
 - `X-Request-Id`: si llega se usa (hasta 128 caracteres `A-Z a-z 0-9 . _ : -`), si no se genera un UUID; siempre vuelve en la respuesta.
 
 ### GET /materiales?busqueda=&soloActivos= · 002, 003, 006

@@ -1,4 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { errors, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import type { UsuarioAutenticado } from './usuario-autenticado.js';
@@ -57,14 +61,31 @@ export class ValidadorToken {
       return { id: payload.sub, roles, azp };
     } catch (error) {
       if (error instanceof TokenInvalidoError) throw error;
+      // Keycloak no respondió al pedir el JWKS: 503 y no 401, para que el ERP no cierre la sesión (convenciones)
+      if (esFallaAlObtenerClaves(error)) {
+        throw new ServiceUnavailableException({
+          codigo: 'SERVICIO_NO_DISPONIBLE',
+          detail: 'No se pudo validar el token: Keycloak no responde.',
+        });
+      }
       if (error instanceof errors.JWTExpired) {
         throw new TokenInvalidoError('El token venció.');
       }
       if (error instanceof errors.JOSEError) {
         throw new TokenInvalidoError('El token no es válido.');
       }
-      // Fallas al obtener el JWKS (Keycloak caído) también dejan sin autenticar.
       throw new TokenInvalidoError('No se pudo validar el token.');
     }
   }
+}
+
+/** Error de red, tiempo agotado o respuesta distinta de 200 al pedir el JWKS (no es culpa del token). */
+export function esFallaAlObtenerClaves(error: unknown): boolean {
+  if (error instanceof errors.JWKSTimeout) return true;
+  if (error instanceof errors.JOSEError) {
+    return error.message.startsWith(
+      'Expected 200 OK from the JSON Web Key Set',
+    );
+  }
+  return error instanceof Error;
 }

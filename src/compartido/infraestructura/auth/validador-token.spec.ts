@@ -1,4 +1,6 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createRemoteJWKSet, errors } from 'jose';
 import {
   CONFIG_PRUEBA,
   crearClavesPrueba,
@@ -86,6 +88,26 @@ describe('ValidadorToken', () => {
     const token = await claves.firmar({ payload: { sub: '' } });
     await expect(validador.validar(`Bearer ${token}`)).rejects.toBeInstanceOf(
       TokenInvalidoError,
+    );
+  });
+  it('responde 503 si Keycloak no responde al pedir el JWKS', async () => {
+    const sinKeycloak = new ValidadorToken(
+      createRemoteJWKSet(new URL('http://127.0.0.1:1/certs')),
+      new ConfigService(CONFIG_PRUEBA),
+    );
+    const token = await claves.firmar();
+    await expect(sinKeycloak.validar(`Bearer ${token}`)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('responde 503 si el JWKS tarda demasiado', async () => {
+    const lento = new ValidadorToken(() => {
+      throw new errors.JWKSTimeout();
+    }, new ConfigService(CONFIG_PRUEBA));
+    const token = await claves.firmar();
+    await expect(lento.validar(`Bearer ${token}`)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
     );
   });
 });
