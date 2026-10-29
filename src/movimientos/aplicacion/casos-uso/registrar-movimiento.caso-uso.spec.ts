@@ -12,6 +12,7 @@ import {
   Material,
 } from '../../../catalogo/dominio/material.js';
 import type { UsuarioAutenticado } from '../../../compartido/infraestructura/auth/usuario-autenticado.js';
+import type { Outbox } from '../../../compartido/infraestructura/mensajeria/outbox.js';
 import type { Transaccion } from '../../../compartido/infraestructura/mongo/transaccion.js';
 import { StockCambiadoError } from '../../../stock/aplicacion/puertos/stock.repositorio.js';
 import { MovimientoRepetidoError } from '../puertos/movimiento.repositorio.js';
@@ -44,11 +45,29 @@ const transaccionDirecta = {
   ejecutar: <T>(trabajo: () => Promise<T>) => trabajo(),
 } as unknown as Transaccion;
 
+/** Outbox en memoria: guarda lo que se agregó. */
+class OutboxMemoria {
+  readonly agregados: {
+    tipo: string;
+    datos: Record<string, unknown>;
+    correlacionId?: string;
+  }[] = [];
+  agregar(
+    tipo: string,
+    datos: Record<string, unknown>,
+    correlacionId?: string,
+  ) {
+    this.agregados.push({ tipo, datos, correlacionId });
+    return Promise.resolve();
+  }
+}
+
 describe('RegistrarMovimientoCasoUso', () => {
   let movimientos: MovimientoRepositorioMemoria;
   let stock: StockRepositorioMemoria;
   let cierres: CierrePeriodoRepositorioMemoria;
   let caso: RegistrarMovimientoCasoUso;
+  let outbox: OutboxMemoria;
 
   const entrada = (
     cambios: Partial<RegistrarMovimientoEntrada> = {},
@@ -70,6 +89,7 @@ describe('RegistrarMovimientoCasoUso', () => {
     movimientos = new MovimientoRepositorioMemoria();
     stock = new StockRepositorioMemoria();
     cierres = new CierrePeriodoRepositorioMemoria();
+    outbox = new OutboxMemoria();
     caso = new RegistrarMovimientoCasoUso(
       new AccesoObraServicio(obras),
       movimientos,
@@ -77,6 +97,7 @@ describe('RegistrarMovimientoCasoUso', () => {
       materiales,
       cierres,
       transaccionDirecta,
+      outbox as unknown as Outbox,
     );
     await obras.guardar(
       new ObraAcceso(
@@ -228,5 +249,72 @@ describe('RegistrarMovimientoCasoUso', () => {
     await expect(caso.ejecutar(entrada(), almacenero)).rejects.toBeInstanceOf(
       MovimientoRepetidoError,
     );
+  });
+
+  describe('Eventos (outbox)', () => {
+    it('siempre guarda MovimientoRegistrado con sus datos y el correlacionId', async () => {
+      const flujo = crypto.randomUUID();
+      const e = entrada({
+        tipo: 'SALIDA',
+        partidaId: 'partida-1',
+        cantidad: 2.5,
+      });
+      stock.poner(OBRA, 'cemento', 100, 10);
+      await caso.ejecutar(e, almacenero, flujo);
+      expect(outbox.agregados).toEqual([
+        {
+          tipo: 'MovimientoRegistrado',
+          datos: {
+            movimientoId: e.id,
+            obraId: OBRA,
+            materialId: 'cemento',
+            tipo: 'SALIDA',
+            cantidad: 2.5,
+            partidaId: 'partida-1',
+            periodo: '2026-11',
+            superaStock: false,
+            registradoEn: '2026-11-15T14:00:00.000Z',
+          },
+          correlacionId: flujo,
+        },
+      ]);
+    });
+
+    it('StockBajo solo al cruzar el mínimo; si ya estaba BAJO no se repite', async () => {
+      stock.poner(OBRA, 'cemento', 12, 10); // JUSTO
+      const salir = (cantidad: number) =>
+        caso.ejecutar(
+          entrada({ tipo: 'SALIDA', partidaId: 'partida-1', cantidad }),
+          almacenero,
+        );
+      await salir(2); // 10: JUSTO, sin aviso
+      await salir(1); // 9: BAJO, aviso
+      await salir(1); // 8: sigue BAJO, sin aviso
+      await caso.ejecutar(entrada({ cantidad: 5 }), almacenero); // 13: OK
+      await salir(4); // 9: BAJO otra vez, aviso
+      expect(
+        outbox.agregados
+          .filter((a) => a.tipo === 'StockBajo')
+          .map((a) => a.datos),
+      ).toEqual([
+        { obraId: OBRA, materialId: 'cemento', cantidad: 9, minimo: 10 },
+        { obraId: OBRA, materialId: 'cemento', cantidad: 9, minimo: 10 },
+      ]);
+      expect(
+        outbox.agregados.filter((a) => a.tipo === 'MovimientoRegistrado'),
+      ).toHaveLength(5);
+    });
+
+    it('un envío repetido o un error no guardan eventos', async () => {
+      const e = entrada();
+      await caso.ejecutar(e, almacenero);
+      outbox.agregados.length = 0;
+      await caso.ejecutar(e, almacenero);
+      cierres.cerrar(OBRA, '2026-11');
+      await expect(caso.ejecutar(entrada(), almacenero)).rejects.toMatchObject({
+        codigo: 'PERIODO_CERRADO',
+      });
+      expect(outbox.agregados).toEqual([]);
+    });
   });
 });

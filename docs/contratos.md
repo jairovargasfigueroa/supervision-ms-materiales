@@ -80,7 +80,8 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 
 - Cada evento se guarda en `outbox_evento` en la misma transacción que el dato que lo origina; `OutboxPublicador` lo publica cada segundo en el exchange `plataforma` con la clave `evento.materiales.<Tipo>`, persistente, `contentType: application/json` y `messageId` = `id` del sobre, y lo marca publicado cuando el broker confirma. Sin conexión a RabbitMQ quedan pendientes y salen al reconectar, en orden. Un evento puede salir dos veces (corte justo después de publicar), nunca ninguna: los consumidores descartan los repetidos por `id`.
 - Sobre común: `{ id, tipo, version: 1, ocurridoEn, origen: "materiales", correlacionId, datos }`. `correlacionId` es el `X-Request-Id` de la petición que lo originó si es un UUID; si no, el `id` del mensaje.
-- `StockBajo` se publica solo cuando el stock **cruza** el mínimo: queda `BAJO` y antes no lo estaba (o el material no tenía fila en la obra). Si ya estaba `BAJO`, no se repite. En la 003 lo dispara `PUT .../minimo` (por ejemplo, fijar un mínimo mayor que 0 a un material con cantidad 0); en la 004, un movimiento.
+- `StockBajo` se publica solo cuando el stock **cruza** el mínimo: queda `BAJO` y antes no lo estaba (o el material no tenía fila en la obra). Si ya estaba `BAJO`, no se repite. En la 003 lo dispara `PUT .../minimo` (por ejemplo, fijar un mínimo mayor que 0 a un material con cantidad 0); en la 004, un movimiento (por ejemplo, la primera salida de un material sin fila en la obra, que deja la cantidad negativa con mínimo 0).
+- `MovimientoRegistrado` se publica con cada movimiento nuevo (no con un envío repetido), en la misma transacción que el movimiento y el ajuste del stock; `partidaId` es `null` en los ingresos y `registradoEn` va en ISO 8601 UTC. `correlacionId` de `StockBajo` y `MovimientoRegistrado`: el `X-Request-Id` de `POST /movimientos` si es un UUID.
 
 ### Cómo se consume (cola `materiales`)
 

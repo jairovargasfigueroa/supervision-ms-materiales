@@ -2,6 +2,7 @@ import request from 'supertest';
 import { AccesoObraModule } from '../src/acceso-obra/acceso-obra.module.js';
 import { CatalogoModule } from '../src/catalogo/catalogo.module.js';
 import { CierresModule } from '../src/cierres/cierres.module.js';
+import { Outbox } from '../src/compartido/infraestructura/mensajeria/outbox.js';
 import { OutboxPublicador } from '../src/compartido/infraestructura/mensajeria/outbox.publicador.js';
 import { MovimientosModule } from '../src/movimientos/movimientos.module.js';
 import { StockModule } from '../src/stock/stock.module.js';
@@ -27,6 +28,7 @@ describe('Movimientos de material (e2e)', () => {
   const tokens: Record<string, string> = {};
   let cementoId: string;
   let rabbit: RabbitPrueba;
+  let publicador: OutboxPublicador;
 
   beforeAll(async () => {
     rabbit = new RabbitPrueba();
@@ -41,7 +43,8 @@ describe('Movimientos de material (e2e)', () => {
       rabbit,
     );
     // Sin el temporizador de 1 s: cada prueba publica cuando quiere (publicarPendientes).
-    prueba.modulo.get(OutboxPublicador).onModuleDestroy();
+    publicador = prueba.modulo.get(OutboxPublicador);
+    publicador.onModuleDestroy();
     tokens.admin = await prueba.claves.firmarConRoles(['admin']);
     tokens.gerente = await prueba.claves.firmarConRoles(['gerente']);
     for (const [nombre, rol, sub, azp] of [
@@ -267,6 +270,120 @@ describe('Movimientos de material (e2e)', () => {
           .codigo,
       ).toBe('MATERIAL_NO_ENCONTRADO');
       expect(await filaStock()).toBeNull();
+    });
+  });
+
+  describe('Eventos StockBajo y MovimientoRegistrado (outbox)', () => {
+    const eventos = () =>
+      prueba.conexion
+        .collection('outbox_evento')
+        .find({}, { sort: { creado_en: 1 } })
+        .toArray();
+    const fijarMinimo = (minimo: number) =>
+      request(servidor())
+        .put(`/obras/${OBRA_ID}/stock/${cementoId}/minimo`)
+        .set('Authorization', `Bearer ${tokens.admin}`)
+        .send({ minimo })
+        .expect(200);
+
+    it('cada movimiento guarda MovimientoRegistrado y el publicador lo envía a RabbitMQ', async () => {
+      const flujo = crypto.randomUUID();
+      const cuerpo = salida({ cantidad: 3 });
+      await registrar(ingreso({ cantidad: 10 })).expect(201);
+      await prueba.conexion.collection('outbox_evento').deleteMany({});
+      await registrar(cuerpo).set('X-Request-Id', flujo).expect(201);
+
+      const [evento, ...otros] = await eventos();
+      expect(otros).toEqual([]);
+      expect(evento).toMatchObject({
+        tipo: 'MovimientoRegistrado',
+        publicado_en: null,
+        payload: {
+          id: evento._id,
+          tipo: 'MovimientoRegistrado',
+          version: 1,
+          origen: 'materiales',
+          correlacionId: flujo,
+          datos: {
+            movimientoId: cuerpo.id,
+            obraId: OBRA_ID,
+            materialId: cementoId,
+            tipo: 'SALIDA',
+            cantidad: 3,
+            partidaId: PARTIDA_ID,
+            periodo: '2026-11',
+            superaStock: false,
+            registradoEn: '2026-11-15T14:00:00.000Z',
+          },
+        },
+      });
+
+      expect(await publicador.publicarPendientes()).toBe(1);
+      expect(rabbit.publicados).toEqual([
+        {
+          clave: 'evento.materiales.MovimientoRegistrado',
+          cuerpo: evento.payload,
+          opciones: {
+            persistent: true,
+            contentType: 'application/json',
+            messageId: evento._id,
+          },
+        },
+      ]);
+    });
+
+    it('un ingreso lleva partidaId null en el evento', async () => {
+      await registrar(ingreso()).expect(201);
+      const [evento] = await eventos();
+      expect(evento.payload.datos).toMatchObject({
+        tipo: 'INGRESO',
+        partidaId: null,
+        cantidad: 100,
+      });
+    });
+
+    it('StockBajo solo al cruzar el mínimo (no se repite mientras sigue BAJO)', async () => {
+      await registrar(ingreso({ cantidad: 120 })).expect(201);
+      await fijarMinimo(100); // 120 con mínimo 100: JUSTO, sin aviso
+      await registrar(salida({ cantidad: 20 })).expect(201); // 100: JUSTO
+      await registrar(salida({ cantidad: 0.5 })).expect(201); // 99,5: BAJO (aviso)
+      await registrar(salida({ cantidad: 10 })).expect(201); // 89,5: sigue BAJO
+      await registrar(ingreso({ cantidad: 50 })).expect(201); // 139,5: OK
+      await registrar(salida({ cantidad: 40 })).expect(201); // 99,5: BAJO (aviso)
+
+      const lista = await eventos();
+      expect(
+        lista.filter((e) => e.tipo === 'StockBajo').map((e) => e.payload.datos),
+      ).toEqual([
+        { obraId: OBRA_ID, materialId: cementoId, cantidad: 99.5, minimo: 100 },
+        { obraId: OBRA_ID, materialId: cementoId, cantidad: 99.5, minimo: 100 },
+      ]);
+      expect(
+        lista.filter((e) => e.tipo === 'MovimientoRegistrado'),
+      ).toHaveLength(6);
+    });
+
+    it('el mismo id dos veces publica una sola vez', async () => {
+      const cuerpo = salida({ cantidad: 5 }); // supera el stock: BAJO
+      await registrar(cuerpo).expect(201);
+      await registrar(cuerpo).expect(200);
+      expect((await eventos()).map((e) => e.tipo)).toEqual([
+        'StockBajo',
+        'MovimientoRegistrado',
+      ]);
+    });
+
+    it('si falla guardar un evento, no queda el movimiento ni el cambio de stock', async () => {
+      vi.spyOn(prueba.modulo.get(Outbox), 'agregar').mockRejectedValueOnce(
+        new Error('MongoDB no responde'),
+      );
+      const respuesta = await registrar(ingreso()).expect(500);
+      expect(respuesta.body.codigo).toBe('ERROR_INTERNO');
+      expect(
+        await prueba.conexion.collection('movimiento').countDocuments(),
+      ).toBe(0);
+      expect(await filaStock()).toBeNull();
+      expect(await eventos()).toEqual([]);
     });
   });
 });

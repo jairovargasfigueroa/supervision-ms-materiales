@@ -64,3 +64,21 @@ export function periodoCerrado(periodo: string): ReglaNegocioError {
     409,
   );
 }
+
+/**
+ * `datos` del evento `MovimientoRegistrado` (`docs/contratos/eventos.md`): lo usa la base de
+ * reportes de la capa 4. `partidaId` es `null` en los ingresos.
+ */
+export function datosMovimientoRegistrado(movimiento: Movimiento) {
+  return {
+    movimientoId: movimiento.id,
+    obraId: movimiento.obraId,
+    materialId: movimiento.materialId,
+    tipo: movimiento.tipo,
+    cantidad: movimiento.cantidad,
+    partidaId: movimiento.partidaId,
+    periodo: movimiento.periodo,
+    superaStock: movimiento.superaStock,
+    registradoEn: movimiento.registradoEn.toISOString(),
+  };
+}

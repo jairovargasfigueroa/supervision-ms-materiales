@@ -14,15 +14,17 @@ import {
 } from '../../../cierres/aplicacion/puertos/cierre-periodo.repositorio.js';
 import { periodoDe } from '../../../compartido/dominio/periodo.js';
 import type { UsuarioAutenticado } from '../../../compartido/infraestructura/auth/usuario-autenticado.js';
+import { Outbox } from '../../../compartido/infraestructura/mensajeria/outbox.js';
 import { Transaccion } from '../../../compartido/infraestructura/mongo/transaccion.js';
 import {
   STOCK_REPOSITORIO,
   StockCambiadoError,
   type StockRepositorio,
 } from '../../../stock/aplicacion/puertos/stock.repositorio.js';
-import { StockObra } from '../../../stock/dominio/stock-obra.js';
+import { cruzaAlBajo, StockObra } from '../../../stock/dominio/stock-obra.js';
 import {
   ajusteDeStock,
+  datosMovimientoRegistrado,
   type Movimiento,
   periodoCerrado,
   superaElStock,
@@ -68,6 +70,9 @@ export const INTENTOS_STOCK = 5;
  * 4. Ajusta `stock_obra` con control de versión (si choca con otro movimiento, se repite todo) e
  *    inserta el movimiento.
  * 5. `superaStock` si la salida es mayor que el stock que había.
+ * 6. Si el stock quedó `BAJO` y antes no lo estaba (o no había fila), outbox `StockBajo`.
+ * 7. Siempre, outbox `MovimientoRegistrado` (reportes de la capa 4).
+ * Los eventos van en la misma transacción que el movimiento: si algo falla, no queda nada.
  */
 @Injectable()
 export class RegistrarMovimientoCasoUso {
@@ -81,16 +86,19 @@ export class RegistrarMovimientoCasoUso {
     @Inject(CIERRE_PERIODO_REPOSITORIO)
     private readonly cierres: CierrePeriodoRepositorio,
     private readonly transaccion: Transaccion,
+    private readonly outbox: Outbox,
   ) {}
 
+  /** `correlacionId`: el `X-Request-Id` de la petición (va en los eventos si es un UUID). */
   async ejecutar(
     entrada: RegistrarMovimientoEntrada,
     usuario: UsuarioAutenticado,
+    correlacionId?: string,
   ): Promise<ResultadoRegistro> {
     for (let intento = 1; ; intento++) {
       try {
         return await this.transaccion.ejecutar(() =>
-          this.registrar(entrada, usuario),
+          this.registrar(entrada, usuario, correlacionId),
         );
       } catch (error) {
         // Otro envío del mismo registro llegó a la vez y ganó: es un repetido.
@@ -109,6 +117,7 @@ export class RegistrarMovimientoCasoUso {
   private async registrar(
     entrada: RegistrarMovimientoEntrada,
     usuario: UsuarioAutenticado,
+    correlacionId: string | undefined,
   ): Promise<ResultadoRegistro> {
     const existente = await this.movimientos.buscar(entrada.id);
     if (existente) return this.repetido(existente, usuario);
@@ -153,6 +162,24 @@ export class RegistrarMovimientoCasoUso {
           : null,
     };
     await this.movimientos.crear(movimiento);
+
+    if (cruzaAlBajo(cambio.anterior, cambio.actual)) {
+      await this.outbox.agregar(
+        'StockBajo',
+        {
+          obraId,
+          materialId,
+          cantidad: cambio.actual.cantidad,
+          minimo: cambio.actual.minimo,
+        },
+        correlacionId,
+      );
+    }
+    await this.outbox.agregar(
+      'MovimientoRegistrado',
+      datosMovimientoRegistrado(movimiento),
+      correlacionId,
+    );
     return { movimiento, stock: cambio.actual, creado: true };
   }
 

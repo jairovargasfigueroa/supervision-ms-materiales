@@ -71,10 +71,10 @@ src/
       cierre-periodo.schema.ts (_id obraId:periodo), cierre-periodo.repositorio.mongo.ts
     cierres.module.ts
   movimientos/                     # ingresos y salidas (movimiento), 004
-    dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado)
+    dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado, datosMovimientoRegistrado)
     aplicacion/
       puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe)
-      casos-uso/    registrar-movimiento.caso-uso.ts (transacción, idempotencia, reintento si el stock choca)
+      casos-uso/    registrar-movimiento.caso-uso.ts (transacción, idempotencia, reintento si el stock choca, outbox StockBajo y MovimientoRegistrado)
     infraestructura/
       movimiento.schema.ts (supera_stock, cerrado; índices por obra y periodo, material, partida y periodo),
       movimiento.repositorio.mongo.ts
