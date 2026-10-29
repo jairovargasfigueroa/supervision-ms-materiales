@@ -15,14 +15,18 @@ Sin token · `200 {"estado":"ok"}`
 ### GET /materiales?busqueda=&soloActivos= · 002, 003, 006
 Roles: todos los internos (`admin`, `residente`, `gerente`, `maestro`, `almacenero`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `codigo asc`. Cada elemento:
 `[{ "id", "codigo": "CEM-IP30", "nombre": "Cemento IP-30", "tipo": "CEMENTO", "unidad": "bolsa", "unidadPlural": "bolsas", "precioReferencial": 62.00, "activo": true, "atributos": [{ "nombre": "peso", "valor": "50 kg" }] }]`
+- `busqueda`: parte del código o del nombre, sin distinguir mayúsculas. `soloActivos`: `true` o `false` (sin el parámetro, todos).
+- `orden`: `codigo`, `nombre`, `tipo` o `precioReferencial`; `direccion`: `asc` o `desc`.
+- Errores: `400 PAGINACION_INVALIDA` (`tamano` mayor a 100) · `400` (otro parámetro mal formado: `pagina` o `tamano` menor a 1, `orden` o `direccion` desconocidos).
 
 ### POST /materiales · 003
-Roles: `admin`. Recibe el material sin `id` (`activo` por defecto `true`). Devuelve `201` con el material.
-Errores: `400` · `409 CODIGO_MATERIAL_REPETIDO`.
+Roles: `admin`. Recibe el material sin `id` (`activo` por defecto `true`, `atributos` por defecto `[]`). Devuelve `201` con el material.
+Validación (003, criterio 3): `codigo` obligatorio, hasta 20 caracteres, se guarda en mayúsculas sin espacios a los costados; `nombre` obligatorio, hasta 120; `tipo` uno de `CEMENTO`, `ACERO`, `AGREGADO`, `LADRILLO`, `MADERA`, `ELECTRICO`, `SANITARIO`, `PINTURA`, `OTRO`; `unidad` y `unidadPlural` obligatorias; `precioReferencial` ≥ 0 con hasta 2 decimales; cada atributo con `nombre` y `valor` no vacíos. Los textos se guardan sin espacios a los costados.
+Errores: `400` (con `errores[]` por campo, por ejemplo `atributos.0.valor`) · `409 CODIGO_MATERIAL_REPETIDO`.
 
 ### PUT /materiales/{id} · 003
-Roles: `admin`. Recibe el material completo (incluye `activo`). Devuelve `200`.
-Errores: `404 MATERIAL_NO_ENCONTRADO` · `409 CODIGO_MATERIAL_REPETIDO`.
+Roles: `admin`. Recibe el material completo (incluye `activo`, obligatorio; mismas validaciones que `POST`). Devuelve `200`.
+Errores: `400` · `404 MATERIAL_NO_ENCONTRADO` · `409 CODIGO_MATERIAL_REPETIDO`.
 
 ### GET /obras/{obraId}/stock · 003, 004
 Roles: internos que pueden ver la obra (`obra_acceso`).

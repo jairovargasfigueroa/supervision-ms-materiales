@@ -10,20 +10,23 @@ NestJS 12, `@nestjs/config`, `@nestjs/mongoose` + `mongoose` 9, `class-validator
 
 ```
 src/
-  main.ts                          # ValidationPipe, filtro de errores, Swagger (dev), puerto
+  main.ts                          # cuerpo JSON de 1 MB, registros, Swagger (dev), puerto
   app.module.ts
   compartido/
-    compartido.module.ts           # JWKS (CONJUNTO_CLAVES), ValidadorToken, JwtGuard (APP_GUARD), filtro (APP_FILTER), middleware X-Request-Id
-    dominio/        regla-negocio.error.ts, periodo.ts (America/La_Paz), cantidad.ts
+    compartido.module.ts           # JWKS (CONJUNTO_CLAVES), ValidadorToken, JwtGuard (APP_GUARD), ValidationPipe (APP_PIPE), filtro (APP_FILTER), middleware X-Request-Id
+    dominio/        regla-negocio.error.ts, periodo.ts (America/La_Paz), cantidad.ts (3 decimales, milésimas),
+                    paginacion.ts (CriteriosPagina, Pagina, validarPaginacion: tamano > 100 → PAGINACION_INVALIDA)
     infraestructura/
       auth/         validador-token.ts (jose + JWKS), jwt.guard.ts (guardia global), publico.decorator.ts (@Publico),
                     usuario-autenticado.ts, roles.guard.ts (guardia global, después de JwtGuard), roles.decorator.ts (@Roles),
                     roles-efectivos.ts (función pura: roles que cuentan según azp), usuario-actual.decorator.ts (@UsuarioActual)
-      http/         problem-details.filter.ts, request-id.middleware.ts, solicitud.ts (tipo de la petición con requestId y usuario)
+      http/         problem-details.filter.ts, request-id.middleware.ts, solicitud.ts (tipo de la petición con requestId y usuario),
+                    validacion.ts (crearValidationPipe: whitelist, transform y 400 DATOS_INVALIDOS con errores[] por campo)
       mensajeria/   mensajeria.module.ts, rabbit.cliente.ts (conexión, topología, prefetch 10, reconexión), sobre.ts (sobre y MensajeInvalidoError),
                     consumidor.ts (reparte por `tipo`, reintentos con x-intentos y plataforma.fallidos), inbox.schema.ts, inbox.ts (procesarUnaVez),
                     outbox.schema.ts, outbox.publicador.ts (cuando se publique el primer evento: 004 y 008)
-      mongo/        transaccion.ts (Transaccion.ejecutar y sesionActual(): la sesión viaja en AsyncLocalStorage)
+      mongo/        transaccion.ts (Transaccion.ejecutar y sesionActual(): la sesión viaja en AsyncLocalStorage),
+                    decimal.ts (Decimal128 ↔ number: los `decimal` de datos.md)
   salud/                           # GET /salud (@Publico, no toca MongoDB ni RabbitMQ)
     presentacion/   salud.controller.ts
     salud.module.ts
@@ -38,19 +41,22 @@ src/
       obra-registrada.consumidor.ts (manejador de ObraRegistrada; valida datos)
     acceso-obra.module.ts
   catalogo/                        # un módulo por contexto: catalogo, stock, movimientos, cierres
-    dominio/        material.ts, tipo-material.ts
+    dominio/        material.ts (normalizarCodigo, errores del catálogo), tipo-material.ts
     aplicacion/
-      puertos/      material.repositorio.ts (interfaz + token de inyección)
+      puertos/      material.repositorio.ts (interfaz + token de inyección, exportado para stock y movimientos)
       casos-uso/    crear-material.caso-uso.ts, actualizar-material.caso-uso.ts, listar-materiales.caso-uso.ts
     infraestructura/
       material.schema.ts, material.repositorio.mongo.ts
     presentacion/
-      materiales.controller.ts, dto/crear-material.dto.ts, dto/material.respuesta.ts
+      materiales.controller.ts, dto/crear-material.dto.ts, dto/actualizar-material.dto.ts, dto/listar-materiales.dto.ts,
+      dto/material.respuesta.ts
     catalogo.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   utilidades/canal-prueba.ts       # doble del canal de RabbitMQ (CanalPrueba) y mensajes de prueba (sin servidor)
   utilidades/obra-acceso-memoria.ts # repositorio de obra_acceso en memoria (unitarias)
+  utilidades/material-memoria.ts   # repositorio de material en memoria (unitarias)
+  utilidades/app-prueba.ts         # app HTTP con mongodb-memory-server, tokens de prueba y doble de RabbitCliente (e2e)
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
   catalogo.e2e-spec.ts             # API completa con mongodb-memory-server

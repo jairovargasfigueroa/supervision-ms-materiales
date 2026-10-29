@@ -1,3 +1,4 @@
+import { ReglaNegocioError } from '../../compartido/dominio/regla-negocio.error.js';
 import type { TipoMaterial } from './tipo-material.js';
 
 /** Largo máximo del código, ya normalizado (003, criterio 3). */
@@ -67,4 +68,22 @@ export class Material {
   conDatos(datos: DatosMaterial): Material {
     return new Material(this.id, datos);
   }
+}
+
+/** `409 CODIGO_MATERIAL_REPETIDO` (`docs/mensajes.md`): «Ya existe un material con el código X». */
+export function codigoRepetido(codigo: string): ReglaNegocioError {
+  return new ReglaNegocioError(
+    'CODIGO_MATERIAL_REPETIDO',
+    `Ya existe un material con el código ${codigo}`,
+    409,
+  );
+}
+
+/** `404 MATERIAL_NO_ENCONTRADO` (editar o fijar mínimo). */
+export function materialNoEncontrado(): ReglaNegocioError {
+  return new ReglaNegocioError(
+    'MATERIAL_NO_ENCONTRADO',
+    'No encontramos ese material en el catálogo.',
+    404,
+  );
 }
