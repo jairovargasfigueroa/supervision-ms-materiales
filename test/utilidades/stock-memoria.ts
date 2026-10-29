@@ -23,6 +23,12 @@ export class StockRepositorioMemoria implements StockRepositorio {
     );
   }
 
+  listarPorObras(obraIds: readonly string[]): Promise<StockObra[]> {
+    return Promise.resolve(
+      [...this.filas.values()].filter((f) => obraIds.includes(f.obraId)),
+    );
+  }
+
   buscar(obraId: string, materialId: string): Promise<StockObra | null> {
     return Promise.resolve(this.filas.get(`${obraId}:${materialId}`) ?? null);
   }

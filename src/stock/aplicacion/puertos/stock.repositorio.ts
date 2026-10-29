@@ -28,6 +28,8 @@ export class StockCambiadoError extends Error {
 export interface StockRepositorio {
   /** Las filas de stock de la obra (materiales con movimientos o mínimo). */
   listarPorObra(obraId: string): Promise<StockObra[]>;
+  /** Las filas de stock de varias obras a la vez, en cualquier orden (resumen del tablero, 009). */
+  listarPorObras(obraIds: readonly string[]): Promise<StockObra[]>;
   /** La fila del material en la obra, o `null` si no tiene. */
   buscar(obraId: string, materialId: string): Promise<StockObra | null>;
   /**

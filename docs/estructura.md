@@ -53,15 +53,17 @@ src/
       dto/material.respuesta.ts
     catalogo.module.ts
   stock/                           # stock por obra (stock_obra), 003
-    dominio/        stock-obra.ts (StockObra, calcularEstado BAJO/JUSTO/OK, cruzaAlBajo)
+    dominio/        stock-obra.ts (StockObra, calcularEstado BAJO/JUSTO/OK, cruzaAlBajo, resumirStock: materiales BAJO por obra, 009)
     aplicacion/
       fila-stock.ts (stock + material, para las respuestas)
       puertos/      stock.repositorio.ts (interfaz + token, exportado para movimientos)
-      casos-uso/    listar-stock-obra.caso-uso.ts, fijar-minimo.caso-uso.ts (upsert en transacción)
+      casos-uso/    listar-stock-obra.caso-uso.ts, fijar-minimo.caso-uso.ts (upsert en transacción),
+                    resumir-stock.caso-uso.ts (009: filtrarVisibles + listarPorObras + resumirStock)
     infraestructura/
-      stock-obra.schema.ts (_id obraId:materialId), stock.repositorio.mongo.ts (fijarMinimo atómico: devuelve la fila anterior; ajustar con control de versión: StockCambiadoError si choca)
+      stock-obra.schema.ts (_id obraId:materialId), stock.repositorio.mongo.ts (fijarMinimo atómico: devuelve la fila anterior; ajustar con control de versión: StockCambiadoError si choca; listarPorObras con $in)
     presentacion/
-      stock.controller.ts, dto/fijar-minimo.dto.ts, dto/stock.respuesta.ts
+      stock.controller.ts, dto/fijar-minimo.dto.ts, dto/stock.respuesta.ts,
+      stock-resumen.controller.ts (GET /stock/resumen, 009), dto/resumir-stock.dto.ts (obraIds separados por coma, 1 a 100), dto/resumen-stock.respuesta.ts
     stock.module.ts
   cierres/                         # cierres de periodo (cierre_periodo): los escribe la 008, los lee la 004
     dominio/        cierre-periodo.ts (EstadoCierre CERRADO/REABIERTO)
@@ -101,6 +103,7 @@ test/
   acceso-obra.e2e-spec.ts          # consumidor de ObraRegistrada (inbox, reintentos, fallidos) y AccesoObraServicio con mongodb-memory-server y CanalPrueba
   movimientos.e2e-spec.ts          # POST /movimientos y GET /obras/{id}/movimientos: stock, idempotencia, periodo cerrado, acceso, outbox
   consumos.e2e-spec.ts             # GET /obras/{id}/consumos: solo salidas del periodo, 400 sin periodo, 403 por rol, 404 por acceso
+  stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 

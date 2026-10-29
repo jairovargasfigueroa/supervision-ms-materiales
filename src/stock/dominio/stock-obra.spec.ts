@@ -1,4 +1,9 @@
-import { calcularEstado, cruzaAlBajo, StockObra } from './stock-obra.js';
+import {
+  calcularEstado,
+  cruzaAlBajo,
+  resumirStock,
+  StockObra,
+} from './stock-obra.js';
 
 const stock = (cantidad: number, minimo: number) =>
   new StockObra('obra-1', 'material-1', cantidad, minimo, 1, new Date());
@@ -55,5 +60,25 @@ describe('cruzaAlBajo', () => {
   it('no avisa si no queda BAJO', () => {
     expect(cruzaAlBajo(stock(10, 100), stock(10, 5))).toBe(false);
     expect(cruzaAlBajo(null, stock(0, 0))).toBe(false);
+  });
+});
+
+describe('resumirStock (009)', () => {
+  const fila = (obraId: string, cantidad: number, minimo: number) =>
+    new StockObra(obraId, `m-${cantidad}`, cantidad, minimo, 1, new Date());
+
+  it('cuenta solo los BAJO de cada obra, en el orden pedido; sin filas cuenta 0', () => {
+    const filas = [
+      fila('obra-1', 5, 10), // BAJO
+      fila('obra-1', 10, 10), // JUSTO: no cuenta
+      fila('obra-1', -2, 0), // BAJO (salida que superó el stock)
+      fila('obra-2', 50, 10), // OK
+      fila('obra-x', 0, 10), // obra no pedida: se ignora
+    ];
+    expect(resumirStock(['obra-2', 'obra-1', 'obra-3'], filas)).toEqual([
+      { obraId: 'obra-2', materialesBajos: 0 },
+      { obraId: 'obra-1', materialesBajos: 2 },
+      { obraId: 'obra-3', materialesBajos: 0 },
+    ]);
   });
 });

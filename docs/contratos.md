@@ -66,6 +66,10 @@ Roles: `admin`, `gerente` y `residente` asignado (si no ve la obra: `404 OBRA_NO
 
 ### GET /stock/resumen?obraIds=a,b,c · 009
 Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (solo obras visibles).
+- `obraIds`: obligatorio, de 1 a 100 ids separados por coma (también vale repetir el parámetro); se quitan los espacios a los costados y los ids vacíos. El gateway pide en lotes de hasta 100.
+- `materialesBajos`: cuántos materiales de la obra están en estado `BAJO` (cantidad < mínimo, calculado al leer, igual que en `GET /obras/{obraId}/stock`; también los materiales desactivados). Una obra visible sin filas de stock o sin materiales bajos devuelve `0`.
+- Un elemento por obra pedida que el usuario ve (`admin` y `gerente`: todas; `residente`: las suyas), sin repetir y en el orden pedido. Las obras que no ve o que no están en `obra_acceso` se omiten sin error (puede responder `[]`).
+- Errores: `400 DATOS_INVALIDOS` (`obraIds` ausente, vacío o con más de 100 ids; `errores[]` con `campo: "obraIds"`) · `403 SIN_PERMISO` (`maestro`, `almacenero` o `cliente`; se comprueba antes que la consulta).
 
 ## Eventos y comandos (RabbitMQ)
 
