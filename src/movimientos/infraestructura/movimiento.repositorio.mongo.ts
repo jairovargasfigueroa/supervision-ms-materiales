@@ -1,17 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
+import type { Model, QueryFilter, SortOrder } from 'mongoose';
+import type {
+  CriteriosPagina,
+  Pagina,
+} from '../../compartido/dominio/paginacion.js';
 import {
   aDecimal,
   aNumero,
 } from '../../compartido/infraestructura/mongo/decimal.js';
 import { sesionActual } from '../../compartido/infraestructura/mongo/transaccion.js';
 import {
+  type FiltroMovimientos,
   MovimientoRepetidoError,
   type MovimientoRepositorio,
+  type OrdenMovimiento,
 } from '../aplicacion/puertos/movimiento.repositorio.js';
 import type { Movimiento, TipoMovimiento } from '../dominio/movimiento.js';
 import { MovimientoDocumento } from './movimiento.schema.js';
+
+/** Campo de `movimiento` por cada `orden` del JSON. */
+const CAMPO_ORDEN: Record<OrdenMovimiento, string> = {
+  registradoEn: 'registrado_en',
+};
 
 @Injectable()
 export class MovimientoRepositorioMongo implements MovimientoRepositorio {
@@ -26,6 +37,33 @@ export class MovimientoRepositorioMongo implements MovimientoRepositorio {
       .session(sesionActual())
       .lean();
     return documento ? aDominio(documento) : null;
+  }
+
+  async listar(
+    obraId: string,
+    filtro: FiltroMovimientos,
+    criterios: CriteriosPagina<OrdenMovimiento>,
+  ): Promise<Pagina<Movimiento>> {
+    const consulta: QueryFilter<MovimientoDocumento> = { obra_id: obraId };
+    if (filtro.periodo) consulta.periodo = filtro.periodo;
+    const sentido: SortOrder = criterios.direccion === 'desc' ? -1 : 1;
+    const [documentos, total] = await Promise.all([
+      this.modelo
+        .find(consulta)
+        // `_id` desempata para que las páginas no repitan ni salten elementos.
+        .sort({ [CAMPO_ORDEN[criterios.orden]]: sentido, _id: sentido })
+        .skip((criterios.pagina - 1) * criterios.tamano)
+        .limit(criterios.tamano)
+        .session(sesionActual())
+        .lean(),
+      this.modelo.countDocuments(consulta).session(sesionActual()),
+    ]);
+    return {
+      items: documentos.map(aDominio),
+      total,
+      pagina: criterios.pagina,
+      tamano: criterios.tamano,
+    };
   }
 
   async crear(movimiento: Movimiento): Promise<void> {

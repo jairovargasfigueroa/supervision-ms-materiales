@@ -56,6 +56,8 @@ Errores, en este orden: `400` · `403 SIN_PERMISO` (rol distinto de `almacenero`
 
 ### GET /obras/{obraId}/movimientos?periodo= · 004
 Roles: internos que pueden ver la obra. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `registradoEn desc`. Cada elemento: `[{ "id", "materialId", "tipo", "cantidad", "partidaId", "periodo", "superaStock", "cerrado", "registradoPor", "registradoEn" }]`
+- `periodo`: `AAAA-MM` (opcional; sin él, todos los periodos). `orden`: solo `registradoEn`; `direccion`: `asc` o `desc`. `partidaId` es `null` en los ingresos.
+- Errores: `400 PAGINACION_INVALIDA` (`tamano` mayor a 100) · `400` (otro parámetro mal formado: `periodo` que no es `AAAA-MM`, `pagina` o `tamano` menor a 1, `orden` o `direccion` desconocidos) · `404 OBRA_NO_ENCONTRADA` (la obra no está en `obra_acceso` o el usuario no la ve; también para `admin`).
 
 ### GET /obras/{obraId}/consumos?periodo=AAAA-MM · 006
 Roles: `admin`, `gerente` y `residente` asignado (si no ve la obra: `404 OBRA_NO_ENCONTRADA`). `[{ "partidaId", "materialId", "cantidad" }]` (suma de salidas).

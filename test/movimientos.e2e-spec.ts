@@ -386,4 +386,97 @@ describe('Movimientos de material (e2e)', () => {
       expect(await eventos()).toEqual([]);
     });
   });
+
+  describe('GET /obras/{obraId}/movimientos', () => {
+    const listar = (
+      consulta = '',
+      token = tokens.residente,
+      obraId = OBRA_ID,
+    ) =>
+      request(servidor())
+        .get('/obras/' + obraId + '/movimientos' + consulta)
+        .set('Authorization', 'Bearer ' + token);
+
+    it('lista paginada, del más reciente al más antiguo, con el formato del contrato', async () => {
+      const primero = ingreso({ registradoEn: '2026-10-20T10:00:00Z' });
+      const segundo = salida({
+        registradoEn: '2026-11-02T10:00:00Z',
+        cantidad: 200,
+      });
+      const tercero = ingreso({ registradoEn: '2026-11-15T10:00:00Z' });
+      for (const cuerpo of [primero, segundo, tercero]) {
+        await registrar(cuerpo).expect(201);
+      }
+      const respuesta = await listar().expect(200);
+      expect(respuesta.body).toEqual({
+        items: [
+          {
+            id: tercero.id,
+            materialId: cementoId,
+            tipo: 'INGRESO',
+            cantidad: 100,
+            partidaId: null,
+            periodo: '2026-11',
+            superaStock: false,
+            cerrado: false,
+            registradoPor: 'almacenero-1',
+            registradoEn: '2026-11-15T10:00:00.000Z',
+          },
+          expect.objectContaining({
+            id: segundo.id,
+            tipo: 'SALIDA',
+            partidaId: PARTIDA_ID,
+            superaStock: true,
+          }),
+          expect.objectContaining({ id: primero.id, periodo: '2026-10' }),
+        ],
+        total: 3,
+        pagina: 1,
+        tamano: 20,
+      });
+
+      const noviembre = await listar(
+        '?periodo=2026-11&tamano=1&pagina=2',
+      ).expect(200);
+      expect(noviembre.body).toMatchObject({ total: 2, pagina: 2, tamano: 1 });
+      expect(noviembre.body.items.map((m: { id: string }) => m.id)).toEqual([
+        segundo.id,
+      ]);
+      const asc = await listar('?direccion=asc').expect(200);
+      expect(asc.body.items[0].id).toBe(primero.id);
+    });
+
+    it('parámetros inválidos → 400; tamano > 100 → 400 PAGINACION_INVALIDA', async () => {
+      for (const consulta of [
+        '?periodo=2026-13',
+        '?periodo=nov',
+        '?pagina=0',
+        '?orden=cantidad',
+        '?direccion=arriba',
+      ]) {
+        expect((await listar(consulta).expect(400)).body.codigo).toBe(
+          'DATOS_INVALIDOS',
+        );
+      }
+      expect((await listar('?tamano=101').expect(400)).body.codigo).toBe(
+        'PAGINACION_INVALIDA',
+      );
+    });
+
+    it.each(['admin', 'gerente', 'residente', 'maestro', 'almacenero'])(
+      '%s (asignado o que ve todas) puede consultar',
+      async (rol) => {
+        await listar('', tokens[rol]).expect(200);
+      },
+    );
+
+    it('almacenero no asignado u obra que no está en obra_acceso → 404 OBRA_NO_ENCONTRADA', async () => {
+      expect(
+        (await listar('', tokens.almacenero2).expect(404)).body.codigo,
+      ).toBe('OBRA_NO_ENCONTRADA');
+      expect(
+        (await listar('', tokens.admin, OTRA_OBRA_ID).expect(404)).body.codigo,
+      ).toBe('OBRA_NO_ENCONTRADA');
+    });
+  });
 });

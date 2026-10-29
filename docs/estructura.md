@@ -73,14 +73,15 @@ src/
   movimientos/                     # ingresos y salidas (movimiento), 004
     dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado, datosMovimientoRegistrado)
     aplicacion/
-      puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe)
-      casos-uso/    registrar-movimiento.caso-uso.ts (transacción, idempotencia, reintento si el stock choca, outbox StockBajo y MovimientoRegistrado)
+      puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe; ORDENES_MOVIMIENTO)
+      casos-uso/    registrar-movimiento.caso-uso.ts (transacción, idempotencia, reintento si el stock choca, outbox StockBajo y MovimientoRegistrado),
+                    listar-movimientos.caso-uso.ts (paginado, exigirVer)
     infraestructura/
       movimiento.schema.ts (supera_stock, cerrado; índices por obra y periodo, material, partida y periodo),
       movimiento.repositorio.mongo.ts
     presentacion/
-      movimientos.controller.ts (POST /movimientos: 201 o 200 si es repetido), dto/registrar-movimiento.dto.ts,
-      dto/movimiento-registrado.respuesta.ts
+      movimientos.controller.ts (POST /movimientos: 201 o 200 si es repetido; GET /obras/{obraId}/movimientos), dto/registrar-movimiento.dto.ts,
+      dto/movimiento-registrado.respuesta.ts, dto/listar-movimientos.dto.ts, dto/movimiento.respuesta.ts
     movimientos.module.ts
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)

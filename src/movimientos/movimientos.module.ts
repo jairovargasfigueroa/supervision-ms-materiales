@@ -5,6 +5,7 @@ import { CatalogoModule } from '../catalogo/catalogo.module.js';
 import { CierresModule } from '../cierres/cierres.module.js';
 import { MensajeriaModule } from '../compartido/infraestructura/mensajeria/mensajeria.module.js';
 import { StockModule } from '../stock/stock.module.js';
+import { ListarMovimientosCasoUso } from './aplicacion/casos-uso/listar-movimientos.caso-uso.js';
 import { RegistrarMovimientoCasoUso } from './aplicacion/casos-uso/registrar-movimiento.caso-uso.js';
 import { MOVIMIENTO_REPOSITORIO } from './aplicacion/puertos/movimiento.repositorio.js';
 import { MovimientoRepositorioMongo } from './infraestructura/movimiento.repositorio.mongo.js';
@@ -33,6 +34,7 @@ import { MovimientosController } from './presentacion/movimientos.controller.js'
   providers: [
     { provide: MOVIMIENTO_REPOSITORIO, useClass: MovimientoRepositorioMongo },
     RegistrarMovimientoCasoUso,
+    ListarMovimientosCasoUso,
   ],
 })
 export class MovimientosModule {}

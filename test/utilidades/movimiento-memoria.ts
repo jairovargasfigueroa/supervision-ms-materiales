@@ -1,7 +1,13 @@
 import type { CierrePeriodoRepositorio } from '../../src/cierres/aplicacion/puertos/cierre-periodo.repositorio.js';
+import type {
+  CriteriosPagina,
+  Pagina,
+} from '../../src/compartido/dominio/paginacion.js';
 import {
+  type FiltroMovimientos,
   MovimientoRepetidoError,
   type MovimientoRepositorio,
+  type OrdenMovimiento,
 } from '../../src/movimientos/aplicacion/puertos/movimiento.repositorio.js';
 import type { Movimiento } from '../../src/movimientos/dominio/movimiento.js';
 
@@ -19,6 +25,29 @@ export class MovimientoRepositorioMemoria implements MovimientoRepositorio {
     }
     this.movimientos.set(movimiento.id, movimiento);
     return Promise.resolve();
+  }
+
+  listar(
+    obraId: string,
+    filtro: FiltroMovimientos,
+    criterios: CriteriosPagina<OrdenMovimiento>,
+  ): Promise<Pagina<Movimiento>> {
+    const sentido = criterios.direccion === 'desc' ? -1 : 1;
+    const todos = [...this.movimientos.values()]
+      .filter((m) => m.obraId === obraId)
+      .filter((m) => !filtro.periodo || m.periodo === filtro.periodo)
+      .sort(
+        (a, b) =>
+          sentido * (a.registradoEn.getTime() - b.registradoEn.getTime()) ||
+          sentido * a.id.localeCompare(b.id),
+      );
+    const inicio = (criterios.pagina - 1) * criterios.tamano;
+    return Promise.resolve({
+      items: todos.slice(inicio, inicio + criterios.tamano),
+      total: todos.length,
+      pagina: criterios.pagina,
+      tamano: criterios.tamano,
+    });
   }
 }
 
