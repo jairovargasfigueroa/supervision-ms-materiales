@@ -48,8 +48,11 @@ Roles: `almacenero` asignado.
 }
 ```
 `partidaId` obligatorio en `SALIDA`; `notaRemision` solo en `INGRESO` y opcional.
+Validación: `id` UUID v4; `obraId` y `partidaId` UUID; `materialId` no vacío; `tipo` `INGRESO` o `SALIDA`; `cantidad` mayor que 0 con hasta 3 decimales; `partidaId` en un `INGRESO` o `notaRemision` en una `SALIDA` → `400`; `notaRemision.numero` no vacío (se guarda sin espacios a los costados); `registradoEn` en ISO 8601 con hora y zona (`Z` o `±hh:mm`).
+En una transacción de MongoDB: `periodo` = mes de `registradoEn` en `America/La_Paz`; el stock del material en la obra suma (`INGRESO`) o resta (`SALIDA`) con control de versión (si choca con otro movimiento a la vez, se vuelve a intentar; si el material no tenía fila en la obra, se crea con mínimo 0); `superaStock` es `true` si una salida es mayor que el stock que había (se registra igual). `stock` es la fila después del movimiento.
 Devuelve `201` (o `200` si el `id` ya existía) `{ "id", "periodo": "2026-11", "superaStock": false, "stock": { "cantidad", "minimo", "estado" } }`.
-Errores: `400` · `403` · `404 OBRA_NO_ENCONTRADA` · `422 MATERIAL_INACTIVO` · `409 PERIODO_CERRADO`.
+Envío repetido (mismo `id`, también a la vez): `200` con el movimiento como quedó y el stock actual, sin volver a sumar, restar ni publicar, aunque el resto del cuerpo sea distinto o el material o el periodo hayan cambiado después; solo para el almacenero asignado a la obra de ese movimiento (si no, `404 OBRA_NO_ENCONTRADA`).
+Errores, en este orden: `400` · `403 SIN_PERMISO` (rol distinto de `almacenero`) · `404 OBRA_NO_ENCONTRADA` (no asignado o la obra no está en `obra_acceso`) · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO` · `409 PERIODO_CERRADO` («El periodo AAAA-MM ya está cerrado»: hay un `cierre_periodo` `CERRADO` para la obra y ese periodo).
 
 ### GET /obras/{obraId}/movimientos?periodo= · 004
 Roles: internos que pueden ver la obra. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `registradoEn desc`. Cada elemento: `[{ "id", "materialId", "tipo", "cantidad", "partidaId", "periodo", "superaStock", "cerrado", "registradoPor", "registradoEn" }]`

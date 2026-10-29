@@ -1,3 +1,6 @@
+import { aMilesimas } from '../../compartido/dominio/cantidad.js';
+import { ReglaNegocioError } from '../../compartido/dominio/regla-negocio.error.js';
+
 /** Tipos de movimiento de material (reglas del negocio, «Material y stock»). */
 export const TIPOS_MOVIMIENTO = ['INGRESO', 'SALIDA'] as const;
 export type TipoMovimiento = (typeof TIPOS_MOVIMIENTO)[number];
@@ -34,4 +37,30 @@ export interface Movimiento {
   readonly registradoEn: Date;
   /** Solo en ingresos, opcional. */
   readonly notaRemision: NotaRemision | null;
+}
+
+/** Cuánto cambia el stock con el movimiento: suma en un ingreso, resta en una salida. */
+export function ajusteDeStock(tipo: TipoMovimiento, cantidad: number): number {
+  return tipo === 'INGRESO' ? cantidad : -cantidad;
+}
+
+/**
+ * Una salida mayor que el stock que había antes se registra igual y queda como alerta
+ * (reglas del negocio, «Material y stock»; 004, criterio 5). Se compara en milésimas.
+ */
+export function superaElStock(
+  tipo: TipoMovimiento,
+  cantidad: number,
+  stockPrevio: number,
+): boolean {
+  return tipo === 'SALIDA' && aMilesimas(stockPrevio) < aMilesimas(cantidad);
+}
+
+/** `409 PERIODO_CERRADO` (`docs/mensajes.md`): «El periodo AAAA-MM ya está cerrado». */
+export function periodoCerrado(periodo: string): ReglaNegocioError {
+  return new ReglaNegocioError(
+    'PERIODO_CERRADO',
+    `El periodo ${periodo} ya está cerrado`,
+    409,
+  );
 }
