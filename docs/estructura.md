@@ -66,11 +66,17 @@ src/
       stock-resumen.controller.ts (GET /stock/resumen, 009), dto/resumir-stock.dto.ts (obraIds separados por coma, 1 a 100), dto/resumen-stock.respuesta.ts
     stock.module.ts
   cierres/                         # cierres de periodo (cierre_periodo): los escribe la 008, los lee la 004
-    dominio/        cierre-periodo.ts (EstadoCierre CERRADO/REABIERTO)
+    dominio/        cierre-periodo.ts (CierrePeriodo, EstadoCierre CERRADO/REABIERTO, decidirCierre, decidirReapertura, motivoCerradoPorOtra)
     aplicacion/
-      puertos/      cierre-periodo.repositorio.ts (estaCerrado; token exportado para movimientos)
+      puertos/      cierre-periodo.repositorio.ts (estaCerrado, buscar, guardar; token exportado para movimientos),
+                    movimientos-periodo.repositorio.ts (marcarCerrados: `cerrado` en los movimientos de la obra y periodo)
+      casos-uso/    cerrar-consumos.caso-uso.ts (008: transacción cierre_periodo + movimiento + outbox ConsumosCerrados o CierreFallido),
+                    reabrir-consumos.caso-uso.ts (008: REABIERTO, cerrado = false, outbox ConsumosReabiertos; no toca el cierre de otra planilla)
     infraestructura/
-      cierre-periodo.schema.ts (_id obraId:periodo), cierre-periodo.repositorio.mongo.ts
+      cierre-periodo.schema.ts (_id obraId:periodo), cierre-periodo.repositorio.mongo.ts (guardar: replaceOne con upsert),
+      movimientos-periodo.repositorio.mongo.ts (updateMany sobre `movimiento`; reutiliza el modelo de movimientos),
+      datos-consumos.ts (leerDatosConsumos: planillaId, obraId, periodo AAAA-MM; si no, MensajeInvalidoError),
+      cerrar-consumos.consumidor.ts, reabrir-consumos.consumidor.ts (manejadores de CerrarConsumos y ReabrirConsumos)
     cierres.module.ts
   movimientos/                     # ingresos y salidas (movimiento), 004
     dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado, datosMovimientoRegistrado),
@@ -104,6 +110,7 @@ test/
   movimientos.e2e-spec.ts          # POST /movimientos y GET /obras/{id}/movimientos: stock, idempotencia, periodo cerrado, acceso, outbox
   consumos.e2e-spec.ts             # GET /obras/{id}/consumos: solo salidas del periodo, 400 sin periodo, 403 por rol, 404 por acceso
   stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
+  cierres.e2e-spec.ts              # CerrarConsumos y ReabrirConsumos (008): cierre_periodo, movimientos marcados, outbox, idempotencia, otra planilla, fallidos
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 

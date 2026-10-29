@@ -1,4 +1,6 @@
 import type { CierrePeriodoRepositorio } from '../../src/cierres/aplicacion/puertos/cierre-periodo.repositorio.js';
+import type { MovimientosPeriodoRepositorio } from '../../src/cierres/aplicacion/puertos/movimientos-periodo.repositorio.js';
+import type { CierrePeriodo } from '../../src/cierres/dominio/cierre-periodo.js';
 import type {
   CriteriosPagina,
   Pagina,
@@ -75,15 +77,57 @@ export class MovimientoRepositorioMemoria implements MovimientoRepositorio {
   }
 }
 
-/** `cierre_periodo` en memoria: los periodos cerrados por obra (`obraId:periodo`). */
+/** `cierre_periodo` en memoria, por obra y periodo (`obraId:periodo`). */
 export class CierrePeriodoRepositorioMemoria implements CierrePeriodoRepositorio {
-  readonly cerrados = new Set<string>();
+  readonly cierres = new Map<string, CierrePeriodo>();
 
-  cerrar(obraId: string, periodo: string): void {
-    this.cerrados.add(`${obraId}:${periodo}`);
+  /** Atajo de las pruebas: deja el periodo `CERRADO` por una planilla cualquiera. */
+  cerrar(obraId: string, periodo: string, planillaId = 'planilla-x'): void {
+    this.cierres.set(`${obraId}:${periodo}`, {
+      obraId,
+      periodo,
+      planillaId,
+      estado: 'CERRADO',
+      cerradoEn: new Date(),
+    });
   }
 
   estaCerrado(obraId: string, periodo: string): Promise<boolean> {
-    return Promise.resolve(this.cerrados.has(`${obraId}:${periodo}`));
+    return Promise.resolve(
+      this.cierres.get(`${obraId}:${periodo}`)?.estado === 'CERRADO',
+    );
+  }
+
+  buscar(obraId: string, periodo: string): Promise<CierrePeriodo | null> {
+    const cierre = this.cierres.get(`${obraId}:${periodo}`);
+    return Promise.resolve(cierre ? { ...cierre } : null);
+  }
+
+  guardar(cierre: CierrePeriodo): Promise<void> {
+    this.cierres.set(`${cierre.obraId}:${cierre.periodo}`, { ...cierre });
+    return Promise.resolve();
+  }
+}
+
+/** Lo que el cierre marca en `movimiento`, en memoria: `cerrado` por obra y periodo. */
+export class MovimientosPeriodoRepositorioMemoria implements MovimientosPeriodoRepositorio {
+  readonly marcas: { obraId: string; periodo: string; cerrado: boolean }[] = [];
+
+  constructor(private readonly movimientos?: MovimientoRepositorioMemoria) {}
+
+  marcarCerrados(
+    obraId: string,
+    periodo: string,
+    cerrado: boolean,
+  ): Promise<number> {
+    this.marcas.push({ obraId, periodo, cerrado });
+    let cambiados = 0;
+    for (const [id, m] of this.movimientos?.movimientos ?? []) {
+      if (m.obraId !== obraId || m.periodo !== periodo) continue;
+      if (m.cerrado === cerrado) continue;
+      this.movimientos?.movimientos.set(id, { ...m, cerrado } as Movimiento);
+      cambiados++;
+    }
+    return Promise.resolve(cambiados);
   }
 }

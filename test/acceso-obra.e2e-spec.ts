@@ -242,7 +242,7 @@ describe('Consumidor de ObraRegistrada y acceso a obras (e2e)', () => {
   });
 
   it.each(['CerrarConsumos', 'ReabrirConsumos'])(
-    '%s (sin consumidor hasta la 008) se guarda en plataforma.fallidos',
+    '%s sin su manejador (CierresModule no está en esta prueba) se guarda en plataforma.fallidos',
     async (tipo) => {
       const sobre = sobrePrueba(tipo, {
         planillaId: 'p1',
