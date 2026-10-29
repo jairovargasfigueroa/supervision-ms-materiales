@@ -60,4 +60,4 @@ src/<modulo>/
 
 Conventional Commits en español e imperativo (`feat(stock): agrega alerta de stock bajo`). Sin coautoría ni firmas de la IA.
 
-Git Flow: ramas `feat/`, `fix/`, `docs/`… desde `develop`, que entran por *pull request*; nunca hagas *push* a `main` ni a `develop` (están protegidas). El usuario crea los PR desde GitHub. Detalle y definición de terminado: `docs/flujo-trabajo.md` del repo `supervision-docs`.
+Git Flow: ramas `feat/`, `fix/`, `docs/`… desde `develop`, que entran por *pull request*; nunca hagas *push* a `main` ni a `develop` (están protegidas). El agente crea y fusiona los PR (squash) hacia `develop` cuando todas las pruebas pasan. Detalle y definición de terminado: `docs/flujo-trabajo.md` del repo `supervision-docs`.
