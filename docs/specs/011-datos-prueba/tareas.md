@@ -6,7 +6,7 @@ Se implementa **después de la 009**, cuando existen todas las colecciones del s
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Resolvedor de fechas relativas (`src/semilla/fecha-relativa.ts`) en zona `America/La_Paz` con D desde `SEMILLA_FECHA` o la fecha de hoy; pruebas con la tabla del diseño
+- [x] Resolvedor de fechas relativas (`src/semilla/fecha-relativa.ts`) en zona `America/La_Paz` con D desde `SEMILLA_FECHA` o la fecha de hoy; pruebas con la tabla del diseño
 - [ ] `src/semilla/materiales.json`: 15 materiales (con `proveedor_habitual_id`, uno inactivo y uno sin proveedor), 3 `obra_acceso`, 14 mínimos, 67 movimientos y 3 cierres
 - [ ] `npm run semilla`: contexto de NestJS solo con Mongoose; *upsert* con `$setOnInsert` en una transacción; calcula `periodo`, `supera_stock`, `cerrado` y `stock_obra.cantidad` recorriendo los movimientos en orden; falla si el estado final no coincide con la tabla del documento; guarda contra `NODE_ENV=production` y base no local
 - [ ] `npm run semilla:vaciar`: vacía todas las colecciones del negocio
