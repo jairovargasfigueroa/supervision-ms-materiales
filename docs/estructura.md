@@ -93,6 +93,16 @@ src/
       dto/registrar-movimiento.dto.ts, dto/movimiento-registrado.respuesta.ts, dto/listar-movimientos.dto.ts, dto/movimiento.respuesta.ts,
       dto/consultar-consumos.dto.ts, dto/consumo.respuesta.ts
     movimientos.module.ts
+  semilla/                         # datos de prueba (011): infraestructura; ningún módulo del negocio la importa
+    main.ts                        # `node dist/semilla/main.js cargar|vaciar` (npm run semilla / semilla:vaciar): contexto sin HTTP, resumen, código de salida
+    semilla.module.ts              # SemillaModule.registrar(config?): configuración + Mongoose (con la guarda antes de conectar) + esquemas; sin mensajería
+    guarda.ts                      # verificarGuarda: NODE_ENV=production o host de MONGODB_URI no local → GuardaSemillaError
+    fecha-relativa.ts              # resolver(expresion, D) (D±n, D±n hh:mm, M0, M±k, M±k/dd hh:mm en America/La_Paz), fechaDeCarga(SEMILLA_FECHA)
+    materiales.json                # copia de docs/datos-prueba.md (secciones 5, 6 y 9), con fechas relativas
+    datos-semilla.ts               # tipos del archivo y leerDatosSemilla (valida la forma)
+    preparar-semilla.ts            # prepararSemilla: fechas, periodo, cerrado, supera_stock y stock con las reglas del dominio; verifica contra el documento
+    cargar-semilla.ts              # CargarSemilla: upsert con $setOnInsert por _id en una transacción; conteos
+    vaciar.ts                      # VaciarSemilla: deleteMany de las colecciones del negocio (incluye outbox_evento y mensaje_procesado) en una transacción
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   utilidades/canal-prueba.ts       # dobles del canal de RabbitMQ (CanalPrueba) y de RabbitCliente para el outbox (RabbitPrueba), y mensajes de prueba
@@ -100,7 +110,7 @@ test/
   utilidades/material-memoria.ts   # repositorio de material en memoria (unitarias)
   utilidades/stock-memoria.ts      # repositorio de stock_obra en memoria (unitarias)
   utilidades/movimiento-memoria.ts # repositorios de movimiento y cierre_periodo en memoria (unitarias)
-  utilidades/app-prueba.ts         # app HTTP con mongodb-memory-server, tokens de prueba y doble de RabbitCliente (e2e)
+  utilidades/app-prueba.ts         # app HTTP con mongodb-memory-server (expone su `uri`), tokens de prueba y doble de RabbitCliente (e2e)
   seguridad.e2e-spec.ts            # /salud, token y X-Request-Id (sin MongoDB)
   roles.e2e-spec.ts                # @Roles y RolesGuard: 401/403/200 por rol y azp (controlador solo de la prueba)
   catalogo.e2e-spec.ts             # GET/POST/PUT /materiales con mongodb-memory-server
@@ -111,6 +121,7 @@ test/
   consumos.e2e-spec.ts             # GET /obras/{id}/consumos: solo salidas del periodo, 400 sin periodo, 403 por rol, 404 por acceso
   stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
   cierres.e2e-spec.ts              # CerrarConsumos y ReabrirConsumos (008): cierre_periodo, movimientos marcados, outbox, idempotencia, otra planilla, fallidos
+  semilla.e2e-spec.ts              # semilla (011) con D = 2026-10-28: dos cargas sin duplicar, stock y estados, supera_stock, cerrado, consumos, /stock/resumen, vaciar, guarda
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 

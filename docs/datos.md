@@ -14,7 +14,7 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 | unidad | string | bolsa, kg, m³, … |
 | unidad_plural | string | |
 | precio_referencial | decimal | |
-| proveedor_habitual_id | string | ref Finanzas (capa 2) |
+| proveedor_habitual_id | string | ref Finanzas (capa 2); nulo si no tiene. Por ahora solo lo escribe la semilla (011); la API lo expone en la 201 |
 | activo | bool | |
 | atributos | arreglo de `{ nombre, valor }` | embebido; varía según el tipo de material |
 

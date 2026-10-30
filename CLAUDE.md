@@ -21,9 +21,19 @@ npm run start:dev    # levantar en modo desarrollo
 npm test             # pruebas unitarias
 npm run test:e2e     # pruebas de punta a punta
 npm run lint
+npm run semilla          # datos de prueba (011): nest build + node dist/semilla/main.js cargar
+npm run semilla:vaciar   # vacía las colecciones del negocio: nest build + node dist/semilla/main.js vaciar
 ```
 
 Configuración local: copiar `.env.example` a `.env` y completar. **`.env` nunca se sube.**
+
+## Datos de prueba (011)
+
+- Comandos para infra: `npm run semilla` y `npm run semilla:vaciar`, con la fecha de carga en `SEMILLA_FECHA=AAAA-MM-DD` (PowerShell: `$env:SEMILLA_FECHA = '2026-10-28'; npm run semilla`; Bash: `SEMILLA_FECHA=2026-10-28 npm run semilla`). Sin `SEMILLA_FECHA`, D es hoy en La Paz. Usan `MONGODB_URI` y `NODE_ENV` del `.env` o del entorno.
+- Salida: código 0 bien, 1 falló, 2 modo desconocido; una línea `RESUMEN_SEMILLA {json}` o `RESUMEN_VACIADO {json}` con los conteos (detalle en el README).
+- Los datos están en `src/semilla/materiales.json`, copia de `docs/datos-prueba.md` (secciones 5, 6 y 9): si cambian, se cambia primero el documento. Las fechas van relativas a D (`D-120`, `M-1/09 10:00`); lo derivado (`periodo`, `cerrado`, `supera_stock`, `stock_obra.cantidad`) lo calcula la carga con las reglas del dominio y falla si no coincide con el documento.
+- La semilla no escribe `outbox_evento` ni `mensaje_procesado` y no levanta HTTP ni RabbitMQ. Guarda: se niega con `NODE_ENV=production` o con una base que no es local (`localhost`, `127.0.0.1`, `::1`, `mongo`).
+- Nunca la corras ni la vacíes contra una base con datos que importen; las pruebas usan `mongodb-memory-server`. Una capa que agrega colecciones o campos amplía la semilla en el mismo trabajo.
 
 ## Arquitectura: Clean Architecture
 
