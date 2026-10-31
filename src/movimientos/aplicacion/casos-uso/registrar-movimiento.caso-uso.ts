@@ -71,7 +71,8 @@ export const INTENTOS_STOCK = 5;
  *    inserta el movimiento.
  * 5. `superaStock` si la salida es mayor que el stock que había.
  * 6. Si el stock quedó `BAJO` y antes no lo estaba (o no había fila), outbox `StockBajo`.
- * 7. Siempre, outbox `MovimientoRegistrado` (reportes de la capa 4).
+ * 7. Siempre, outbox `MovimientoRegistrado` (reportes de la capa 4) con el precio referencial
+ *    del material en ese momento (401).
  * Los eventos van en la misma transacción que el movimiento: si algo falla, no queda nada.
  */
 @Injectable()
@@ -177,7 +178,7 @@ export class RegistrarMovimientoCasoUso {
     }
     await this.outbox.agregar(
       'MovimientoRegistrado',
-      datosMovimientoRegistrado(movimiento),
+      datosMovimientoRegistrado(movimiento, material.precioReferencial),
       correlacionId,
     );
     return { movimiento, stock: cambio.actual, creado: true };

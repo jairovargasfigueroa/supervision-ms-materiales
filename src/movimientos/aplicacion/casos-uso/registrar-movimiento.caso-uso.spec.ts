@@ -68,6 +68,7 @@ describe('RegistrarMovimientoCasoUso', () => {
   let cierres: CierrePeriodoRepositorioMemoria;
   let caso: RegistrarMovimientoCasoUso;
   let outbox: OutboxMemoria;
+  let materiales: MaterialRepositorioMemoria;
 
   const entrada = (
     cambios: Partial<RegistrarMovimientoEntrada> = {},
@@ -85,7 +86,7 @@ describe('RegistrarMovimientoCasoUso', () => {
 
   beforeEach(async () => {
     const obras = new ObraAccesoRepositorioMemoria();
-    const materiales = new MaterialRepositorioMemoria();
+    materiales = new MaterialRepositorioMemoria();
     movimientos = new MovimientoRepositorioMemoria();
     stock = new StockRepositorioMemoria();
     cierres = new CierrePeriodoRepositorioMemoria();
@@ -270,6 +271,7 @@ describe('RegistrarMovimientoCasoUso', () => {
             materialId: 'cemento',
             tipo: 'SALIDA',
             cantidad: 2.5,
+            precioReferencial: 62,
             partidaId: 'partida-1',
             periodo: '2026-11',
             superaStock: false,
@@ -278,6 +280,22 @@ describe('RegistrarMovimientoCasoUso', () => {
           correlacionId: flujo,
         },
       ]);
+    });
+
+    it('MovimientoRegistrado lleva el precio referencial del material en ese momento (401)', async () => {
+      await caso.ejecutar(entrada(), almacenero);
+      await materiales.guardar(
+        new Material('cemento', datos({ precioReferencial: 65.5 })),
+      );
+      await caso.ejecutar(
+        entrada({ tipo: 'SALIDA', partidaId: 'partida-1', cantidad: 1 }),
+        almacenero,
+      );
+      expect(
+        outbox.agregados
+          .filter((a) => a.tipo === 'MovimientoRegistrado')
+          .map((a) => a.datos.precioReferencial),
+      ).toEqual([62, 65.5]);
     });
 
     it('StockBajo solo al cruzar el mínimo; si ya estaba BAJO no se repite', async () => {

@@ -12,8 +12,8 @@ Sin token · `200 {"estado":"ok"}`
 - Rol (001): cada ruta indica abajo sus «Roles». Con token válido pero sin ninguno de esos roles: `403 SIN_PERMISO`. Cuentan solo los roles de la aplicación desde la que se inició sesión (`azp` del token): `portal` → solo `cliente`; `erp` o `app-obra` → solo `admin`, `residente`, `gerente`, `maestro`, `almacenero`; un cliente de servicio (`gateway`, `ia-agentes`, `n8n`) → los roles del token tal cual.
 - `X-Request-Id`: si llega se usa (hasta 128 caracteres `A-Z a-z 0-9 . _ : -`), si no se genera un UUID; siempre vuelve en la respuesta.
 
-### GET /materiales?busqueda=&soloActivos= · 002, 003, 006
-Roles: todos los internos (`admin`, `residente`, `gerente`, `maestro`, `almacenero`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `codigo asc`. Cada elemento:
+### GET /materiales?busqueda=&soloActivos= · 002, 003, 006, 401
+Roles: todos los internos (`admin`, `residente`, `gerente`, `maestro`, `almacenero`). Quién llama: el gateway y el servicio de IA en la carga inicial (401), con el token de `ia-reportes` (`gerente`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `codigo asc`. Cada elemento:
 `[{ "id", "codigo": "CEM-IP30", "nombre": "Cemento IP-30", "tipo": "CEMENTO", "unidad": "bolsa", "unidadPlural": "bolsas", "precioReferencial": 62.00, "activo": true, "atributos": [{ "nombre": "peso", "valor": "50 kg" }] }]`
 - `busqueda`: parte del código o del nombre, sin distinguir mayúsculas. `soloActivos`: `true` o `false` (sin el parámetro, todos).
 - `orden`: `codigo`, `nombre`, `tipo` o `precioReferencial`; `direccion`: `asc` o `desc`.
@@ -54,8 +54,8 @@ Devuelve `201` (o `200` si el `id` ya existía) `{ "id", "periodo": "2026-11", "
 Envío repetido (mismo `id`, también a la vez): `200` con el movimiento como quedó y el stock actual, sin volver a sumar, restar ni publicar, aunque el resto del cuerpo sea distinto o el material o el periodo hayan cambiado después; solo para el almacenero asignado a la obra de ese movimiento (si no, `404 OBRA_NO_ENCONTRADA`).
 Errores, en este orden: `400` · `403 SIN_PERMISO` (rol distinto de `almacenero`) · `404 OBRA_NO_ENCONTRADA` (no asignado o la obra no está en `obra_acceso`) · `404 MATERIAL_NO_ENCONTRADO` · `422 MATERIAL_INACTIVO` · `409 PERIODO_CERRADO` («El periodo AAAA-MM ya está cerrado»: hay un `cierre_periodo` `CERRADO` para la obra y ese periodo).
 
-### GET /obras/{obraId}/movimientos?periodo= · 004
-Roles: internos que pueden ver la obra. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `registradoEn desc`. Cada elemento: `[{ "id", "materialId", "tipo", "cantidad", "partidaId", "periodo", "superaStock", "cerrado", "registradoPor", "registradoEn" }]`
+### GET /obras/{obraId}/movimientos?periodo= · 004, 401
+Roles: internos que pueden ver la obra. Quién llama: el gateway y el servicio de IA en la carga inicial (401), con el token de `ia-reportes` (`gerente`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `registradoEn desc`. Cada elemento: `[{ "id", "materialId", "tipo", "cantidad", "partidaId", "periodo", "superaStock", "cerrado", "registradoPor", "registradoEn" }]`
 - `periodo`: `AAAA-MM` (opcional; sin él, todos los periodos). `orden`: solo `registradoEn`; `direccion`: `asc` o `desc`. `partidaId` es `null` en los ingresos.
 - Errores: `400 PAGINACION_INVALIDA` (`tamano` mayor a 100) · `400` (otro parámetro mal formado: `periodo` que no es `AAAA-MM`, `pagina` o `tamano` menor a 1, `orden` o `direccion` desconocidos) · `404 OBRA_NO_ENCONTRADA` (la obra no está en `obra_acceso` o el usuario no la ve; también para `admin`).
 
@@ -82,14 +82,14 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 | `comando.materiales.ReabrirConsumos` | escucha | `planillaId, obraId, periodo` |
 | `evento.materiales.ConsumosReabiertos` | publica | `planillaId, obraId, periodo` |
 | `evento.materiales.StockBajo` | publica | `obraId, materialId, cantidad, minimo` (003 y 004; lo escucha n8n en la capa 2) |
-| `evento.materiales.MovimientoRegistrado` | publica | `movimientoId, obraId, materialId, tipo, cantidad, partidaId, periodo, superaStock, registradoEn` (capa 4) |
+| `evento.materiales.MovimientoRegistrado` | publica | `movimientoId, obraId, materialId, tipo, cantidad, precioReferencial, partidaId, periodo, superaStock, registradoEn` (capa 4; `precioReferencial` desde la 401; lo escucha IA) |
 
 ### Cómo se publica (outbox)
 
 - Cada evento se guarda en `outbox_evento` en la misma transacción que el dato que lo origina; `OutboxPublicador` lo publica cada segundo en el exchange `plataforma` con la clave `evento.materiales.<Tipo>`, persistente, `contentType: application/json` y `messageId` = `id` del sobre, y lo marca publicado cuando el broker confirma. Sin conexión a RabbitMQ quedan pendientes y salen al reconectar, en orden. Un evento puede salir dos veces (corte justo después de publicar), nunca ninguna: los consumidores descartan los repetidos por `id`.
 - Sobre común: `{ id, tipo, version: 1, ocurridoEn, origen: "materiales", correlacionId, datos }`. `correlacionId` es el `X-Request-Id` de la petición que lo originó si es un UUID (en las respuestas a un comando, el `correlacionId` del comando); si no, el `id` del mensaje.
 - `StockBajo` se publica solo cuando el stock **cruza** el mínimo: queda `BAJO` y antes no lo estaba (o el material no tenía fila en la obra). Si ya estaba `BAJO`, no se repite. En la 003 lo dispara `PUT .../minimo` (por ejemplo, fijar un mínimo mayor que 0 a un material con cantidad 0); en la 004, un movimiento (por ejemplo, la primera salida de un material sin fila en la obra, que deja la cantidad negativa con mínimo 0).
-- `MovimientoRegistrado` se publica con cada movimiento nuevo (no con un envío repetido), en la misma transacción que el movimiento y el ajuste del stock; `partidaId` es `null` en los ingresos y `registradoEn` va en ISO 8601 UTC. `correlacionId` de `StockBajo` y `MovimientoRegistrado`: el `X-Request-Id` de `POST /movimientos` si es un UUID.
+- `MovimientoRegistrado` se publica con cada movimiento nuevo (no con un envío repetido), en la misma transacción que el movimiento y el ajuste del stock; `partidaId` es `null` en los ingresos y `registradoEn` va en ISO 8601 UTC. `precioReferencial` (401) es el `precio_referencial` del material al registrar el movimiento (el movimiento no lo guarda; la `version` del sobre sigue en 1). `correlacionId` de `StockBajo` y `MovimientoRegistrado`: el `X-Request-Id` de `POST /movimientos` si es un UUID.
 
 ### Saga «aprobar planilla» (008)
 
