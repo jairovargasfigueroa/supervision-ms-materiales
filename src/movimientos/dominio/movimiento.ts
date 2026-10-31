@@ -67,15 +67,21 @@ export function periodoCerrado(periodo: string): ReglaNegocioError {
 
 /**
  * `datos` del evento `MovimientoRegistrado` (`docs/contratos/eventos.md`): lo usa la base de
- * reportes de la capa 4. `partidaId` es `null` en los ingresos.
+ * reportes de la capa 4. `partidaId` es `null` en los ingresos. `precioReferencial` (401) es el
+ * precio del material al registrar el movimiento: el movimiento no lo guarda, solo viaja en el
+ * evento.
  */
-export function datosMovimientoRegistrado(movimiento: Movimiento) {
+export function datosMovimientoRegistrado(
+  movimiento: Movimiento,
+  precioReferencial: number,
+) {
   return {
     movimientoId: movimiento.id,
     obraId: movimiento.obraId,
     materialId: movimiento.materialId,
     tipo: movimiento.tipo,
     cantidad: movimiento.cantidad,
+    precioReferencial,
     partidaId: movimiento.partidaId,
     periodo: movimiento.periodo,
     superaStock: movimiento.superaStock,

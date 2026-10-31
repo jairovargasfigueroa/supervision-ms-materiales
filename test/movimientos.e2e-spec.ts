@@ -310,6 +310,7 @@ describe('Movimientos de material (e2e)', () => {
             materialId: cementoId,
             tipo: 'SALIDA',
             cantidad: 3,
+            precioReferencial: 62,
             partidaId: PARTIDA_ID,
             periodo: '2026-11',
             superaStock: false,
