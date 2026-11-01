@@ -50,6 +50,14 @@ export class ObraAccesoRepositorioMongo implements ObraAccesoRepositorio {
       .lean();
     return documentos.map(aDominio);
   }
+
+  async listar(): Promise<ObraAcceso[]> {
+    const documentos = await this.modelo
+      .find()
+      .session(sesionActual())
+      .lean();
+    return documentos.map(aDominio);
+  }
 }
 
 function aDominio(documento: ObraAccesoDocumento): ObraAcceso {

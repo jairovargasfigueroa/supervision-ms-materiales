@@ -22,4 +22,8 @@ export class ObraAccesoRepositorioMemoria implements ObraAccesoRepositorio {
       }),
     );
   }
+
+  listar(): Promise<ObraAcceso[]> {
+    return Promise.resolve([...this.obras.values()]);
+  }
 }

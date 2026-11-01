@@ -8,4 +8,6 @@ export interface ObraAccesoRepositorio {
   buscar(obraId: string): Promise<ObraAcceso | null>;
   /** Las obras de esa lista que existan (en cualquier orden). */
   buscarVarias(obraIds: readonly string[]): Promise<ObraAcceso[]>;
+  /** Todas las obras (en cualquier orden): `stock_obra` sin `obraId` de la herramienta MCP (501). */
+  listar(): Promise<ObraAcceso[]>;
 }

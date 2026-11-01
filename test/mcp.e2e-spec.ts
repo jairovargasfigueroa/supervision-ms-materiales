@@ -1,18 +1,33 @@
+import type { INestApplicationContext } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import request from 'supertest';
 import { AccesoObraModule } from '../src/acceso-obra/acceso-obra.module.js';
 import { CatalogoModule } from '../src/catalogo/catalogo.module.js';
 import { CierresModule } from '../src/cierres/cierres.module.js';
 import { McpModule } from '../src/mcp/mcp.module.js';
 import { MovimientosModule } from '../src/movimientos/movimientos.module.js';
+import { CargarSemilla } from '../src/semilla/cargar-semilla.js';
+import { SemillaModule } from '../src/semilla/semilla.module.js';
 import { StockModule } from '../src/stock/stock.module.js';
 import { crearAppPrueba, type AppPrueba } from './utilidades/app-prueba.js';
 import { RabbitPrueba } from './utilidades/canal-prueba.js';
 
 /** Versión común del protocolo en la plataforma (501, diseño). */
 const VERSION_MCP = '2025-11-25';
+/** Fecha de carga de la semilla (011), la misma de `semilla.e2e-spec.ts`. */
+const D = '2026-10-28';
+const obra = (o: number) => `b0000000-0000-4000-8000-00000000000${o}`;
+const OBRA_INEXISTENTE = 'b0000000-0000-4000-8000-000000000099';
+
+interface ResultadoHerramienta {
+  isError?: boolean;
+  content: { type: string; text: string }[];
+  structuredContent?: Record<string, unknown>;
+}
 
 describe('Servidor MCP /mcp (e2e)', () => {
   let prueba: AppPrueba;
+  let semilla: INestApplicationContext;
   const tokens: Record<string, string> = {};
 
   beforeAll(async () => {
@@ -38,9 +53,19 @@ describe('Servidor MCP /mcp (e2e)', () => {
       ['agente_ia'],
       'erp',
     );
+    // Datos de prueba (011): las cifras se comparan con las del REST.
+    semilla = await NestFactory.createApplicationContext(
+      SemillaModule.registrar({
+        MONGODB_URI: prueba.uri,
+        NODE_ENV: 'development',
+      }),
+      { logger: false, abortOnError: false },
+    );
+    await semilla.get(CargarSemilla).ejecutar(D);
   }, 300_000);
 
   afterAll(async () => {
+    await semilla?.close();
     await prueba?.cerrar();
   });
 
@@ -60,6 +85,32 @@ describe('Servidor MCP /mcp (e2e)', () => {
     if (token) peticion.set('Authorization', 'Bearer ' + token);
     return peticion.send({ jsonrpc: '2.0', id: siguienteId++, method, params });
   };
+  /** `tools/call` con el token de agente_ia: devuelve el resultado de la herramienta. */
+  const llamar = async (
+    nombre: string,
+    argumentos: unknown = {},
+  ): Promise<ResultadoHerramienta> => {
+    const respuesta = await rpc('tools/call', {
+      name: nombre,
+      arguments: argumentos,
+    });
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.error).toBeUndefined();
+    return respuesta.body.result as ResultadoHerramienta;
+  };
+  /** Salida de una llamada correcta; comprueba que el texto es el mismo JSON. */
+  const salidaDe = async (nombre: string, argumentos: unknown = {}) => {
+    const resultado = await llamar(nombre, argumentos);
+    expect(resultado.isError).toBeFalsy();
+    expect(JSON.parse(resultado.content[0].text)).toEqual(
+      resultado.structuredContent,
+    );
+    return resultado.structuredContent as Record<string, any>;
+  };
+  const getRest = (ruta: string) =>
+    request(servidor())
+      .get(ruta)
+      .set('Authorization', 'Bearer ' + tokens.gerente);
   const inicializar = (token: string | null = tokens.agente) =>
     rpc(
       'initialize',
@@ -130,6 +181,63 @@ describe('Servidor MCP /mcp (e2e)', () => {
     it('get /mcp sin token responde 401', async () => {
       const respuesta = await request(servidor()).get('/mcp');
       expect(respuesta.status).toBe(401);
+    });
+  });
+
+  describe('stock_obra', () => {
+    it('sin obraId: las 14 filas de la semilla, BAJO → JUSTO → OK, con las cifras del REST', async () => {
+      const salida = await salidaDe('stock_obra');
+      expect(salida.total).toBe(14);
+      expect(salida.truncado).toBe(false);
+      expect(salida.filas).toHaveLength(14);
+      const orden = { BAJO: 0, JUSTO: 1, OK: 2 } as Record<string, number>;
+      const rangos = salida.filas.map((f: any) => orden[f.estado]);
+      expect(rangos).toEqual([...rangos].sort((a, b) => a - b));
+      expect(salida.filas[0]).toMatchObject({
+        obraId: obra(2),
+        codigo: 'CEM-IP30',
+        cantidad: 25,
+        estado: 'BAJO',
+      });
+      // Mismas cifras que GET /obras/{obraId}/stock (003) para cada obra.
+      for (const o of [1, 2, 3]) {
+        const rest = await getRest(`/obras/${obra(o)}/stock`);
+        expect(rest.status).toBe(200);
+        const nombre = (
+          await prueba.conexion
+            .collection('obra_acceso')
+            .findOne({ _id: obra(o) as never })
+        )?.nombre;
+        const delMcp = salida.filas
+          .filter((f: any) => f.obraId === obra(o))
+          .map(({ obraId: _o, obraNombre, ...resto }: any) => {
+            expect(obraNombre).toBe(nombre);
+            return resto;
+          })
+          .sort((a: any, b: any) => (a.codigo < b.codigo ? -1 : 1));
+        expect(delMcp).toEqual(
+          rest.body.map(({ unidadPlural: _u, ...resto }: any) => resto),
+        );
+      }
+    });
+
+    it('filtra por estados y por obra', async () => {
+      const bajos = await salidaDe('stock_obra', { estados: ['BAJO'] });
+      expect(bajos.filas.map((f: any) => [f.obraId, f.codigo])).toEqual([
+        [obra(2), 'CEM-IP30'],
+      ]);
+      const deLaUno = await salidaDe('stock_obra', {
+        obraId: obra(1),
+        estados: ['JUSTO', 'OK'],
+      });
+      expect(deLaUno.total).toBe(7);
+      expect(deLaUno.filas[0]).toMatchObject({ codigo: 'FIE-12', estado: 'JUSTO' });
+    });
+
+    it('con limite recorta y avisa truncado; total cuenta todas', async () => {
+      const salida = await salidaDe('stock_obra', { limite: 2 });
+      expect(salida.filas).toHaveLength(2);
+      expect(salida).toMatchObject({ total: 14, truncado: true });
     });
   });
 });

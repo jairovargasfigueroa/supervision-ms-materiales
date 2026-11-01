@@ -81,6 +81,14 @@ export class AccesoObraServicio {
     );
     return unicas.filter((id) => visibles.has(id));
   }
+
+  /** Todas las obras de `obra_acceso` que el usuario ve (`stock_obra` sin `obraId`, 501). */
+  async listarVisibles(usuario: UsuarioAutenticado): Promise<ObraAcceso[]> {
+    const roles = efectivos(usuario);
+    return (await this.obras.listar()).filter((obra) =>
+      obra.puedeVer(usuario.id, roles),
+    );
+  }
 }
 
 function efectivos(usuario: UsuarioAutenticado): string[] {
