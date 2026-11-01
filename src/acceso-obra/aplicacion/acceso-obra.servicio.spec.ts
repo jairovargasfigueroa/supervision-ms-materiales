@@ -52,6 +52,8 @@ describe('AccesoObraServicio', () => {
     it.each([
       ['admin', usuario('cualquiera', ['admin'])],
       ['gerente', usuario('cualquiera', ['gerente'])],
+      // 501: la service account de ia-agentes ve todas las obras como gerente.
+      ['agente_ia (ia-agentes)', usuario('sa', ['agente_ia'], 'ia-agentes')],
       ['residente asignado', usuario('res-1', ['residente'])],
       ['maestro asignado', usuario('mae-1', ['maestro'], 'app-obra')],
       ['almacenero asignado', usuario('alm-1', ['almacenero'], 'app-obra')],

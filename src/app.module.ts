@@ -8,6 +8,7 @@ import { MovimientosModule } from './movimientos/movimientos.module.js';
 import { StockModule } from './stock/stock.module.js';
 import { CompartidoModule } from './compartido/compartido.module.js';
 import { MensajeriaModule } from './compartido/infraestructura/mensajeria/mensajeria.module.js';
+import { McpModule } from './mcp/mcp.module.js';
 import { SaludModule } from './salud/salud.module.js';
 
 @Module({
@@ -28,6 +29,7 @@ import { SaludModule } from './salud/salud.module.js';
     StockModule,
     CierresModule,
     MovimientosModule,
+    McpModule,
   ],
 })
 export class AppModule {}

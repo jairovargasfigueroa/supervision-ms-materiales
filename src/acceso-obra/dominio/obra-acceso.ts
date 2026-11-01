@@ -6,8 +6,11 @@ export interface Asignaciones {
   clienteId: string;
 }
 
-/** Roles que ven todas las obras (convenciones, «Visibilidad de obras»). */
-const VEN_TODAS: readonly string[] = ['admin', 'gerente'];
+/**
+ * Roles que ven todas las obras (convenciones, «Visibilidad de obras»). `agente_ia` (501) es la
+ * *service account* de `ia-agentes`: solo entra por `POST /mcp` y ve todas como `gerente`.
+ */
+const VEN_TODAS: readonly string[] = ['admin', 'gerente', 'agente_ia'];
 
 /**
  * Copia de las asignaciones de una obra (`obra_acceso`), que llega con `ObraRegistrada`.
