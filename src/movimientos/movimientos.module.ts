@@ -5,6 +5,7 @@ import { CatalogoModule } from '../catalogo/catalogo.module.js';
 import { CierresModule } from '../cierres/cierres.module.js';
 import { MensajeriaModule } from '../compartido/infraestructura/mensajeria/mensajeria.module.js';
 import { StockModule } from '../stock/stock.module.js';
+import { ConsultarConsumosPartidaCasoUso } from './aplicacion/casos-uso/consultar-consumos-partida.caso-uso.js';
 import { ConsultarConsumosCasoUso } from './aplicacion/casos-uso/consultar-consumos.caso-uso.js';
 import { ListarMovimientosCasoUso } from './aplicacion/casos-uso/listar-movimientos.caso-uso.js';
 import { RegistrarMovimientoCasoUso } from './aplicacion/casos-uso/registrar-movimiento.caso-uso.js';
@@ -18,7 +19,8 @@ import { MovimientosController } from './presentacion/movimientos.controller.js'
 
 /**
  * Ingresos y salidas de material por obra (`movimiento`, 004): ajusta `stock_obra` y respeta los
- * periodos cerrados (`cierre_periodo`).
+ * periodos cerrados (`cierre_periodo`). Exporta `ConsultarConsumosPartidaCasoUso` para la
+ * herramienta MCP `consumos_partida` (501).
  */
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { MovimientosController } from './presentacion/movimientos.controller.js'
     RegistrarMovimientoCasoUso,
     ListarMovimientosCasoUso,
     ConsultarConsumosCasoUso,
+    ConsultarConsumosPartidaCasoUso,
   ],
+  exports: [ConsultarConsumosPartidaCasoUso],
 })
 export class MovimientosModule {}

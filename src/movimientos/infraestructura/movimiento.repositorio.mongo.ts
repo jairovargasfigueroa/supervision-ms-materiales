@@ -17,7 +17,10 @@ import {
   type MovimientoRepositorio,
   type OrdenMovimiento,
 } from '../aplicacion/puertos/movimiento.repositorio.js';
-import type { ConsumoPartida } from '../dominio/consumo.js';
+import type {
+  ConsumoPartida,
+  ResumenSalidasPartida,
+} from '../dominio/consumo.js';
 import type { Movimiento, TipoMovimiento } from '../dominio/movimiento.js';
 import { MovimientoDocumento } from './movimiento.schema.js';
 
@@ -92,6 +95,46 @@ export class MovimientoRepositorioMongo implements MovimientoRepositorio {
       partidaId: grupo._id.partida_id,
       materialId: grupo._id.material_id,
       cantidad: redondearCantidad(aNumero(grupo.cantidad)),
+    }));
+  }
+
+  async resumirSalidas(
+    obraId: string,
+    periodo: string,
+    partidaId?: string,
+  ): Promise<ResumenSalidasPartida[]> {
+    // Misma agregación que `sumarSalidas` (006), más los conteos; usa `por_obra_periodo`.
+    const filtro: Record<string, unknown> = {
+      obra_id: obraId,
+      periodo,
+      tipo: 'SALIDA',
+    };
+    if (partidaId !== undefined) filtro.partida_id = partidaId;
+    const grupos = await this.modelo
+      .aggregate<{
+        _id: { partida_id: string; material_id: string };
+        cantidad: Types.Decimal128;
+        salidas: number;
+        superan: number;
+      }>([
+        { $match: filtro },
+        {
+          $group: {
+            _id: { partida_id: '$partida_id', material_id: '$material_id' },
+            cantidad: { $sum: '$cantidad' },
+            salidas: { $sum: 1 },
+            superan: { $sum: { $cond: ['$supera_stock', 1, 0] } },
+          },
+        },
+        { $sort: { '_id.partida_id': 1, '_id.material_id': 1 } },
+      ])
+      .session(sesionActual());
+    return grupos.map((grupo) => ({
+      partidaId: grupo._id.partida_id,
+      materialId: grupo._id.material_id,
+      cantidad: redondearCantidad(aNumero(grupo.cantidad)),
+      salidas: grupo.salidas,
+      salidasSuperanStock: grupo.superan,
     }));
   }
 

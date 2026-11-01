@@ -4,9 +4,9 @@ Requisitos y diseño: `docs/specs/501-servidores-mcp/` de la carpeta que agrupa 
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Instalar `@modelcontextprotocol/server` 2, `@modelcontextprotocol/express` 2 y `zod` 4
-- [ ] Módulo `src/mcp/`: `POST /mcp` con `RolesGuard` y `@Roles('agente_ia')`, transporte sin estado; visibilidad de `agente_ia` igual a `gerente`
-- [ ] Herramienta `stock_obra` (filtro por estados, nombre de obra desde `obra_acceso`, orden BAJO → JUSTO → OK)
-- [ ] Herramienta `consumos_partida` (usado, número de salidas, salidas que superaron el stock, `cerrado`)
-- [ ] Errores de herramienta y registro de cada llamada con `X-Request-Id`
-- [ ] Pruebas: 401 / 403 / 200, `tools/list` exacto, cifras iguales al REST, argumentos maliciosos, solo lectura (ninguna colección cambia)
+- [x] Instalar `@modelcontextprotocol/server` 2.4 (versión fijada en la menor; `@modelcontextprotocol/express` 2.0 se instaló y luego se quitó: no trae transporte, solo *middleware*, y el transporte sin estado es `WebStandardStreamableHTTPServerTransport` de `@modelcontextprotocol/server`) y `zod` ^4.2 (solo se usa dentro de `src/mcp/`); aplicar «Cambios a contratos y datos» del diseño en `docs/contratos.md` y `docs/estructura.md`
+- [x] Módulo `src/mcp/`: `POST /mcp` con `RolesGuard` y `@Roles('agente_ia')`, transporte sin estado con respuestas JSON (`GET` y `DELETE /mcp` → `405`); visibilidad de `agente_ia` igual a `gerente`
+- [x] Herramienta `stock_obra` (filtro por estados, nombre de obra desde `obra_acceso`, orden BAJO → JUSTO → OK, `total`, `truncado`, anotaciones `readOnlyHint: true` y `openWorldHint: false`)
+- [x] Herramienta `consumos_partida` (usado, número de salidas, salidas que superaron el stock, `cerrado`, máximo 200 filas con `truncado`, mismas anotaciones)
+- [x] Errores de herramienta (`ARGUMENTO_INVALIDO` sin consultar la base, `OBRA_NO_ENCONTRADA`, `ERROR_INTERNO`, tiempo máximo 5 s) y registro de cada llamada con `X-Request-Id`
+- [x] Pruebas: 401 / 403 / 200, `tools/list` exacto (esquemas y anotaciones), cifras iguales al REST, `truncado`, argumentos maliciosos, solo lectura (ninguna colección cambia)

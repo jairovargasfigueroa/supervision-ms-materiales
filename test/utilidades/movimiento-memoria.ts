@@ -12,7 +12,10 @@ import {
   type OrdenMovimiento,
 } from '../../src/movimientos/aplicacion/puertos/movimiento.repositorio.js';
 import { sumarCantidades } from '../../src/compartido/dominio/cantidad.js';
-import type { ConsumoPartida } from '../../src/movimientos/dominio/consumo.js';
+import type {
+  ConsumoPartida,
+  ResumenSalidasPartida,
+} from '../../src/movimientos/dominio/consumo.js';
 import type { Movimiento } from '../../src/movimientos/dominio/movimiento.js';
 
 /** Repositorio de `movimiento` en memoria para las pruebas unitarias (`id` único). */
@@ -74,6 +77,30 @@ export class MovimientoRepositorioMemoria implements MovimientoRepositorio {
           a.materialId.localeCompare(b.materialId),
       ),
     );
+  }
+
+  async resumirSalidas(
+    obraId: string,
+    periodo: string,
+    partidaId?: string,
+  ): Promise<ResumenSalidasPartida[]> {
+    const sumas = await this.sumarSalidas(obraId, periodo);
+    const salidas = [...this.movimientos.values()].filter(
+      (m) =>
+        m.obraId === obraId && m.periodo === periodo && m.tipo === 'SALIDA',
+    );
+    return sumas
+      .filter((s) => partidaId === undefined || s.partidaId === partidaId)
+      .map((s) => {
+        const delGrupo = salidas.filter(
+          (m) => m.partidaId === s.partidaId && m.materialId === s.materialId,
+        );
+        return {
+          ...s,
+          salidas: delGrupo.length,
+          salidasSuperanStock: delGrupo.filter((m) => m.superaStock).length,
+        };
+      });
   }
 }
 

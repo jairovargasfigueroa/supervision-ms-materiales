@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AccesoObraModule } from '../acceso-obra/acceso-obra.module.js';
 import { CatalogoModule } from '../catalogo/catalogo.module.js';
 import { MensajeriaModule } from '../compartido/infraestructura/mensajeria/mensajeria.module.js';
+import { ConsultarStockObrasCasoUso } from './aplicacion/casos-uso/consultar-stock-obras.caso-uso.js';
 import { FijarMinimoCasoUso } from './aplicacion/casos-uso/fijar-minimo.caso-uso.js';
 import { ListarStockObraCasoUso } from './aplicacion/casos-uso/listar-stock-obra.caso-uso.js';
 import { ResumirStockCasoUso } from './aplicacion/casos-uso/resumir-stock.caso-uso.js';
@@ -18,7 +19,7 @@ import { StockResumenController } from './presentacion/stock-resumen.controller.
 /**
  * Stock por obra (`stock_obra`, 003): consulta con su estado y mínimo por material, y resumen de
  * materiales bajos por obra para el tablero (009). Exporta `STOCK_REPOSITORIO` para los
- * movimientos (004).
+ * movimientos (004) y `ConsultarStockObrasCasoUso` para la herramienta MCP `stock_obra` (501).
  */
 @Module({
   imports: [
@@ -35,7 +36,8 @@ import { StockResumenController } from './presentacion/stock-resumen.controller.
     ListarStockObraCasoUso,
     FijarMinimoCasoUso,
     ResumirStockCasoUso,
+    ConsultarStockObrasCasoUso,
   ],
-  exports: [STOCK_REPOSITORIO],
+  exports: [STOCK_REPOSITORIO, ConsultarStockObrasCasoUso],
 })
 export class StockModule {}
