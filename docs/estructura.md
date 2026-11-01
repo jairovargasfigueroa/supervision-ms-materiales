@@ -4,7 +4,7 @@ Obligatorio para todo el código de este servicio. Si algo no encaja, propón el
 
 ## Librerías
 
-NestJS 12, `@nestjs/config`, `@nestjs/mongoose` + `mongoose` 9, `class-validator` 0.15 + `class-transformer` 0.5 (con `ValidationPipe` global, `whitelist` y `transform`), `@nestjs/swagger` 12 (Swagger UI en `/docs` solo en desarrollo), `amqplib`, `jose` 6, `@modelcontextprotocol/server` 2.4 + `@modelcontextprotocol/express` 2.0 + `zod` 4 (501; el transporte HTTP sin estado es `WebStandardStreamableHTTPServerTransport` de `@modelcontextprotocol/server`, porque el adaptador de Express solo trae *middleware*; **`zod` solo dentro de `src/mcp/`**, porque lo exige el SDK de MCP; el resto del servicio valida con `class-validator`). Pruebas: Vitest, `supertest`, `mongodb-memory-server` 11 en modo *replica set*. Módulos ES: imports con extensión `.js`.
+NestJS 12, `@nestjs/config`, `@nestjs/mongoose` + `mongoose` 9, `class-validator` 0.15 + `class-transformer` 0.5 (con `ValidationPipe` global, `whitelist` y `transform`), `@nestjs/swagger` 12 (Swagger UI en `/docs` solo en desarrollo), `amqplib`, `jose` 6, `@modelcontextprotocol/server` 2.4 + `zod` 4 (501; el transporte HTTP sin estado es `WebStandardStreamableHTTPServerTransport` del mismo paquete; no se usa `@modelcontextprotocol/express`, que solo trae *middleware*; **`zod` solo dentro de `src/mcp/`**, porque lo exige el SDK de MCP; el resto del servicio valida con `class-validator`). Pruebas: Vitest, `supertest`, `mongodb-memory-server` 11 en modo *replica set*. Módulos ES: imports con extensión `.js`.
 
 ## Árbol (Clean Architecture)
 

@@ -18,9 +18,9 @@ const SIN_COPIAR = new Set([
  * modo **sin estado** (`sessionIdGenerator: undefined`: no se guarda sesión entre llamadas) y con
  * **respuestas JSON** (`enableJsonResponse: true`: sin flujo SSE) (501, diseño).
  *
- * El transporte es el de `@modelcontextprotocol/server` (`Request`/`Response` web); el adaptador
- * `@modelcontextprotocol/express` solo trae *middleware*, así que aquí se traduce la petición de
- * Express. El cuerpo ya lo leyó el analizador JSON de Nest (1 MB) y se pasa como `parsedBody`.
+ * El transporte es el de `@modelcontextprotocol/server` (`Request`/`Response` web), así que aquí se
+ * traduce la petición de Express (el adaptador `@modelcontextprotocol/express` no trae transporte y
+ * no se usa). El cuerpo ya lo leyó el analizador JSON de Nest (1 MB) y se pasa como `parsedBody`.
  */
 export async function atenderPeticionMcp(
   servidor: McpServer,
