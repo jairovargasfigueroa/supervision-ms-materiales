@@ -86,7 +86,8 @@ export class MovimientoRepositorioMemoria implements MovimientoRepositorio {
   ): Promise<ResumenSalidasPartida[]> {
     const sumas = await this.sumarSalidas(obraId, periodo);
     const salidas = [...this.movimientos.values()].filter(
-      (m) => m.obraId === obraId && m.periodo === periodo && m.tipo === 'SALIDA',
+      (m) =>
+        m.obraId === obraId && m.periodo === periodo && m.tipo === 'SALIDA',
     );
     return sumas
       .filter((s) => partidaId === undefined || s.partidaId === partidaId)

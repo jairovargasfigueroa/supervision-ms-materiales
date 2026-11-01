@@ -232,7 +232,10 @@ describe('Servidor MCP /mcp (e2e)', () => {
         estados: ['JUSTO', 'OK'],
       });
       expect(deLaUno.total).toBe(7);
-      expect(deLaUno.filas[0]).toMatchObject({ codigo: 'FIE-12', estado: 'JUSTO' });
+      expect(deLaUno.filas[0]).toMatchObject({
+        codigo: 'FIE-12',
+        estado: 'JUSTO',
+      });
     });
 
     it('con limite recorta y avisa truncado; total cuenta todas', async () => {
@@ -279,7 +282,11 @@ describe('Servidor MCP /mcp (e2e)', () => {
             await movimientos.countDocuments({ ...filtro, supera_stock: true }),
           );
         }
-        expect(salida).toMatchObject({ obraId: obra(o), periodo, truncado: false });
+        expect(salida).toMatchObject({
+          obraId: obra(o),
+          periodo,
+          truncado: false,
+        });
       }
     });
 
@@ -298,7 +305,10 @@ describe('Servidor MCP /mcp (e2e)', () => {
       const fila = salida.filas.find(
         (f: any) => f.materialId === superada!.material_id,
       );
-      expect(fila).toMatchObject({ codigo: 'CEM-IP30', salidasSuperanStock: 1 });
+      expect(fila).toMatchObject({
+        codigo: 'CEM-IP30',
+        salidasSuperanStock: 1,
+      });
     });
 
     it('cerrado según cierre_periodo', async () => {

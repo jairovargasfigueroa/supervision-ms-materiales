@@ -42,9 +42,10 @@ type Salida = z.output<typeof salida>;
 
 /** `stock_obra` (501): stock por obra con su mínimo y estado, primero los más críticos. */
 @Injectable()
-export class StockObraHerramienta
-  implements HerramientaMcp<typeof entrada, typeof salida>
-{
+export class StockObraHerramienta implements HerramientaMcp<
+  typeof entrada,
+  typeof salida
+> {
   readonly nombre = 'stock_obra';
   readonly descripcion =
     'Devuelve el stock de materiales por obra, al día, con su mínimo y su estado (BAJO, JUSTO, OK), primero los más críticos.';

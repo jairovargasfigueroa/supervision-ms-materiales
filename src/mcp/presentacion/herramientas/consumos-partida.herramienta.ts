@@ -36,9 +36,10 @@ type Salida = z.output<typeof salida>;
 
 /** `consumos_partida` (501): material usado por partida y material de una obra en un periodo. */
 @Injectable()
-export class ConsumosPartidaHerramienta
-  implements HerramientaMcp<typeof entrada, typeof salida>
-{
+export class ConsumosPartidaHerramienta implements HerramientaMcp<
+  typeof entrada,
+  typeof salida
+> {
   readonly nombre = 'consumos_partida';
   readonly descripcion =
     'Devuelve el material usado (suma de salidas) por partida y material de una obra en un periodo, con las salidas que superaron el stock. Sirve para comparar con lo previsto de avance_obra.';

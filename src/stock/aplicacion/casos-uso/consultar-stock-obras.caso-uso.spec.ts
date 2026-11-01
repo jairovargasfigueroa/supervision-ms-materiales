@@ -72,7 +72,11 @@ describe('ConsultarStockObrasCasoUso (stock_obra, 501)', () => {
       agente,
     );
     expect(
-      resultado.filas.map((f) => [f.obraNombre, f.material.codigo, f.stock.estado]),
+      resultado.filas.map((f) => [
+        f.obraNombre,
+        f.material.codigo,
+        f.stock.estado,
+      ]),
     ).toEqual([
       ['Casa Equipetrol', 'ARE-FINA', 'BAJO'],
       ['Edificio Las Palmas', 'CEM-IP30', 'BAJO'],
