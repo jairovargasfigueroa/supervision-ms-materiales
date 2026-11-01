@@ -1,6 +1,7 @@
-import type { INestApplicationContext } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { type INestApplicationContext, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import request from 'supertest';
 import { AccesoObraModule } from '../src/acceso-obra/acceso-obra.module.js';
 import { CatalogoModule } from '../src/catalogo/catalogo.module.js';
@@ -370,5 +371,271 @@ describe('Servidor MCP /mcp (e2e)', () => {
         await movimientos.deleteMany({ obra_id: obra(3), periodo });
       }
     });
+  });
+
+  describe('tools/list', () => {
+    it('publica exactamente consumos_partida y stock_obra, con esquemas estrictos y solo lectura', async () => {
+      const respuesta = await rpc('tools/list');
+      expect(respuesta.status).toBe(200);
+      const herramientas = respuesta.body.result.tools as Record<string, any>[];
+      expect(herramientas.map((h) => h.name).sort()).toEqual([
+        'consumos_partida',
+        'stock_obra',
+      ]);
+      for (const h of herramientas) {
+        expect(h.description).toMatch(/^Devuelve /);
+        expect(h.annotations).toEqual({
+          readOnlyHint: true,
+          openWorldHint: false,
+        });
+        expect(h.inputSchema).toMatchObject({
+          type: 'object',
+          additionalProperties: false,
+        });
+        expect(h.outputSchema).toMatchObject({
+          type: 'object',
+          additionalProperties: false,
+        });
+      }
+      const porNombre = Object.fromEntries(
+        herramientas.map((h) => [h.name, h]),
+      );
+
+      const stock = porNombre.stock_obra;
+      expect(Object.keys(stock.inputSchema.properties).sort()).toEqual([
+        'estados',
+        'limite',
+        'obraId',
+      ]);
+      expect(stock.inputSchema.required ?? []).toEqual([]);
+      expect(stock.inputSchema.properties.obraId.format).toBe('uuid');
+      expect(stock.inputSchema.properties.limite).toMatchObject({
+        type: 'integer',
+        minimum: 1,
+        maximum: 100,
+        default: 100,
+      });
+      expect(stock.inputSchema.properties.estados.items.enum).toEqual([
+        'BAJO',
+        'JUSTO',
+        'OK',
+      ]);
+      expect(Object.keys(stock.outputSchema.properties).sort()).toEqual([
+        'filas',
+        'total',
+        'truncado',
+      ]);
+      expect(
+        Object.keys(
+          stock.outputSchema.properties.filas.items.properties,
+        ).sort(),
+      ).toEqual(
+        [
+          'obraId',
+          'obraNombre',
+          'materialId',
+          'codigo',
+          'nombre',
+          'unidad',
+          'cantidad',
+          'minimo',
+          'estado',
+        ].sort(),
+      );
+
+      const consumos = porNombre.consumos_partida;
+      expect([...consumos.inputSchema.required].sort()).toEqual([
+        'obraId',
+        'periodo',
+      ]);
+      expect(Object.keys(consumos.inputSchema.properties).sort()).toEqual([
+        'obraId',
+        'partidaId',
+        'periodo',
+      ]);
+      expect(consumos.inputSchema.properties.periodo.pattern).toBeDefined();
+      expect(Object.keys(consumos.outputSchema.properties).sort()).toEqual([
+        'cerrado',
+        'filas',
+        'obraId',
+        'periodo',
+        'truncado',
+      ]);
+      expect(
+        Object.keys(
+          consumos.outputSchema.properties.filas.items.properties,
+        ).sort(),
+      ).toEqual(
+        [
+          'partidaId',
+          'materialId',
+          'codigo',
+          'nombre',
+          'unidad',
+          'usado',
+          'salidas',
+          'salidasSuperanStock',
+        ].sort(),
+      );
+    });
+
+    it('no publica recursos ni prompts', async () => {
+      for (const metodo of ['resources/list', 'prompts/list']) {
+        const respuesta = await rpc(metodo);
+        expect(respuesta.body.error?.code).toBe(-32601);
+      }
+    });
+
+    it('una herramienta que no existe es un error del protocolo', async () => {
+      const respuesta = await rpc('tools/call', {
+        name: 'asistencia_obra',
+        arguments: {},
+      });
+      expect(respuesta.body.result).toBeUndefined();
+      expect(respuesta.body.error).toBeDefined();
+    });
+  });
+
+  describe('errores de herramienta', () => {
+    afterEach(() => {
+      mongoose.set('debug', false);
+    });
+
+    /**
+     * Anota las consultas a MongoDB. Se ignora `outbox_evento`: el `OutboxPublicador` la lee cada
+     * 1 s en segundo plano, sin relación con la herramienta.
+     */
+    const anotarConsultas = (consultas: string[]) =>
+      mongoose.set('debug', (coleccion: string, metodo: string) => {
+        if (coleccion !== 'outbox_evento') {
+          consultas.push(`${coleccion}.${metodo}`);
+        }
+      });
+
+    const errorDe = (resultado: ResultadoHerramienta) => {
+      expect(resultado.isError).toBe(true);
+      expect(resultado.structuredContent).toBeUndefined();
+      return JSON.parse(resultado.content[0].text) as {
+        codigo: string;
+        mensaje: string;
+      };
+    };
+
+    it.each([
+      ['stock_obra', { obraId: 'no-es-uuid' }],
+      ['stock_obra', { obraId: "x' OR 1=1" }],
+      ['stock_obra', { obraId: { $ne: null } }],
+      ['stock_obra', { limite: 1000 }],
+      ['stock_obra', { limite: 0 }],
+      ['stock_obra', { limite: 1.5 }],
+      ['stock_obra', { estados: ['CRITICO'] }],
+      ['stock_obra', { campoDeMas: true }],
+      ['consumos_partida', { obraId: obra(1), periodo: '2027-13' }],
+      ['consumos_partida', { obraId: obra(1) }],
+      ['consumos_partida', { periodo: '2026-09' }],
+      ['consumos_partida', { obraId: "x' OR 1=1", periodo: '2026-09' }],
+      [
+        'consumos_partida',
+        { obraId: obra(1), periodo: '2026-09', partidaId: 'p-1' },
+      ],
+      [
+        'consumos_partida',
+        { obraId: obra(1), periodo: '2026-09', limite: 1000 },
+      ],
+    ])(
+      '%s %j: ARGUMENTO_INVALIDO sin consultar la base',
+      async (nombre, argumentos) => {
+        const consultas: string[] = [];
+        anotarConsultas(consultas);
+        const error = errorDe(await llamar(nombre, argumentos));
+        expect(error.codigo).toBe('ARGUMENTO_INVALIDO');
+        expect(error.mensaje.length).toBeGreaterThan(0);
+        expect(consultas).toEqual([]);
+      },
+    );
+
+    it('el registro de consultas sí ve una llamada válida (control de la prueba anterior)', async () => {
+      const consultas: string[] = [];
+      anotarConsultas(consultas);
+      await salidaDe('stock_obra', { obraId: obra(1) });
+      expect(consultas).toContain('stock_obra.find');
+    });
+
+    it.each([
+      ['stock_obra', { obraId: OBRA_INEXISTENTE }],
+      ['consumos_partida', { obraId: OBRA_INEXISTENTE, periodo: '2026-09' }],
+    ])(
+      '%s con una obra inexistente: OBRA_NO_ENCONTRADA',
+      async (nombre, argumentos) => {
+        expect(errorDe(await llamar(nombre, argumentos))).toEqual({
+          codigo: 'OBRA_NO_ENCONTRADA',
+          mensaje: 'La obra pedida no existe.',
+        });
+      },
+    );
+  });
+
+  it('registra cada llamada en una línea JSON con el X-Request-Id y sin el token', async () => {
+    const lineas: string[] = [];
+    const espia = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation((mensaje: unknown) => {
+        lineas.push(String(mensaje));
+      });
+    try {
+      await salidaDe('stock_obra', { estados: ['BAJO'] });
+    } finally {
+      espia.mockRestore();
+    }
+    const registro = lineas
+      .filter((linea) => linea.startsWith('{'))
+      .map((linea) => JSON.parse(linea) as Record<string, unknown>);
+    expect(registro).toHaveLength(1);
+    expect(registro[0]).toMatchObject({
+      herramienta: 'stock_obra',
+      argumentos: { estados: ['BAJO'] },
+      filas: 1,
+      requestId: 'ejecucion-prueba-1',
+    });
+    expect(typeof registro[0].duracionMs).toBe('number');
+    expect(lineas.join('\n')).not.toContain(tokens.agente);
+  });
+
+  it('solo lectura: después de llamar todas las herramientas ninguna colección cambió', async () => {
+    /** Conteo y suma de verificación de cada colección de la base. */
+    const fotografiar = async () => {
+      const foto: Record<string, { conteo: number; suma: string }> = {};
+      const colecciones = await prueba.conexion.db!.listCollections().toArray();
+      for (const { name } of colecciones) {
+        const documentos = await prueba.conexion
+          .collection(name)
+          .find({})
+          .sort({ _id: 1 })
+          .toArray();
+        foto[name] = {
+          conteo: documentos.length,
+          suma: createHash('sha256')
+            .update(JSON.stringify(documentos))
+            .digest('hex'),
+        };
+      }
+      return foto;
+    };
+    const antes = await fotografiar();
+    expect(antes.movimiento.conteo).toBe(67);
+    expect(antes.stock_obra.conteo).toBe(14);
+    await llamar('stock_obra', {});
+    await llamar('stock_obra', { obraId: obra(2), estados: ['BAJO'] });
+    for (const periodo of ['2026-07', '2026-08', '2026-09', '2026-10']) {
+      for (const o of [1, 2, 3]) {
+        await llamar('consumos_partida', { obraId: obra(o), periodo });
+      }
+    }
+    await llamar('consumos_partida', {
+      obraId: OBRA_INEXISTENTE,
+      periodo: '2026-09',
+    });
+    await llamar('stock_obra', { limite: 1000 });
+    expect(await fotografiar()).toEqual(antes);
   });
 });
