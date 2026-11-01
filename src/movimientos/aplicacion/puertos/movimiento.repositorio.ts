@@ -2,7 +2,10 @@ import type {
   CriteriosPagina,
   Pagina,
 } from '../../../compartido/dominio/paginacion.js';
-import type { ConsumoPartida } from '../../dominio/consumo.js';
+import type {
+  ConsumoPartida,
+  ResumenSalidasPartida,
+} from '../../dominio/consumo.js';
 import type { Movimiento } from '../../dominio/movimiento.js';
 
 export const MOVIMIENTO_REPOSITORIO = Symbol('MOVIMIENTO_REPOSITORIO');
@@ -42,4 +45,13 @@ export interface MovimientoRepositorio {
    * `partidaId` y `materialId`. Los ingresos no cuentan.
    */
   sumarSalidas(obraId: string, periodo: string): Promise<ConsumoPartida[]>;
+  /**
+   * Como `sumarSalidas`, con el número de salidas y cuántas superaron el stock (501); solo de
+   * `partidaId` si viene. Mismo orden. Solo lectura.
+   */
+  resumirSalidas(
+    obraId: string,
+    periodo: string,
+    partidaId?: string,
+  ): Promise<ResumenSalidasPartida[]>;
 }

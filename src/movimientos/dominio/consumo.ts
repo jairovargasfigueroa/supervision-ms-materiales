@@ -9,3 +9,15 @@ export interface ConsumoPartida {
   /** Suma de las salidas, con 3 decimales. */
   readonly cantidad: number;
 }
+
+/**
+ * Salidas de un material hacia una partida en un periodo, con cuántas fueron y cuántas superaron
+ * el stock que había (herramienta MCP `consumos_partida`, 501). `cantidad` es la misma suma que
+ * `ConsumoPartida`.
+ */
+export interface ResumenSalidasPartida extends ConsumoPartida {
+  /** Número de salidas. */
+  readonly salidas: number;
+  /** Salidas con `supera_stock` (alerta de 004). */
+  readonly salidasSuperanStock: number;
+}

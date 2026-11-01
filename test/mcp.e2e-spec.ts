@@ -1,5 +1,6 @@
 import type { INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { Types } from 'mongoose';
 import request from 'supertest';
 import { AccesoObraModule } from '../src/acceso-obra/acceso-obra.module.js';
 import { CatalogoModule } from '../src/catalogo/catalogo.module.js';
@@ -238,6 +239,126 @@ describe('Servidor MCP /mcp (e2e)', () => {
       const salida = await salidaDe('stock_obra', { limite: 2 });
       expect(salida.filas).toHaveLength(2);
       expect(salida).toMatchObject({ total: 14, truncado: true });
+    });
+  });
+
+  describe('consumos_partida', () => {
+    it('usado igual a GET /obras/{obraId}/consumos, con salidas contadas en la colección', async () => {
+      for (const [o, periodo] of [
+        [1, '2026-09'],
+        [1, '2026-08'],
+        [2, '2026-09'],
+      ] as const) {
+        const salida = await salidaDe('consumos_partida', {
+          obraId: obra(o),
+          periodo,
+        });
+        const rest = await getRest(
+          `/obras/${obra(o)}/consumos?periodo=${periodo}`,
+        );
+        expect(rest.status).toBe(200);
+        expect(rest.body.length).toBeGreaterThan(0);
+        expect(
+          salida.filas.map((f: any) => ({
+            partidaId: f.partidaId,
+            materialId: f.materialId,
+            cantidad: f.usado,
+          })),
+        ).toEqual(rest.body);
+        for (const fila of salida.filas) {
+          const filtro = {
+            obra_id: obra(o),
+            periodo,
+            tipo: 'SALIDA',
+            partida_id: fila.partidaId,
+            material_id: fila.materialId,
+          };
+          const movimientos = prueba.conexion.collection('movimiento');
+          expect(fila.salidas).toBe(await movimientos.countDocuments(filtro));
+          expect(fila.salidasSuperanStock).toBe(
+            await movimientos.countDocuments({ ...filtro, supera_stock: true }),
+          );
+        }
+        expect(salida).toMatchObject({ obraId: obra(o), periodo, truncado: false });
+      }
+    });
+
+    it('cuenta la salida que superó el stock y filtra por partida', async () => {
+      const superada = await prueba.conexion
+        .collection('movimiento')
+        .findOne({ supera_stock: true });
+      const salida = await salidaDe('consumos_partida', {
+        obraId: superada!.obra_id,
+        periodo: superada!.periodo,
+        partidaId: superada!.partida_id,
+      });
+      expect(new Set(salida.filas.map((f: any) => f.partidaId))).toEqual(
+        new Set([superada!.partida_id]),
+      );
+      const fila = salida.filas.find(
+        (f: any) => f.materialId === superada!.material_id,
+      );
+      expect(fila).toMatchObject({ codigo: 'CEM-IP30', salidasSuperanStock: 1 });
+    });
+
+    it('cerrado según cierre_periodo', async () => {
+      const cerrado = await salidaDe('consumos_partida', {
+        obraId: obra(1),
+        periodo: '2026-08',
+      });
+      expect(cerrado.cerrado).toBe(true);
+      const abierto = await salidaDe('consumos_partida', {
+        obraId: obra(1),
+        periodo: '2026-09',
+      });
+      expect(abierto.cerrado).toBe(false);
+    });
+
+    it('periodo sin salidas: filas vacías', async () => {
+      const salida = await salidaDe('consumos_partida', {
+        obraId: obra(3),
+        periodo: '2020-01',
+      });
+      expect(salida).toEqual({
+        obraId: obra(3),
+        periodo: '2020-01',
+        cerrado: false,
+        filas: [],
+        truncado: false,
+      });
+    });
+
+    it('más de 200 grupos: devuelve 200 y truncado', async () => {
+      const movimientos = prueba.conexion.collection('movimiento');
+      const material = await prueba.conexion.collection('material').findOne();
+      const periodo = '2030-01';
+      await movimientos.insertMany(
+        Array.from({ length: 201 }, (_, i) => ({
+          _id: crypto.randomUUID() as never,
+          obra_id: obra(3),
+          material_id: material!._id,
+          tipo: 'SALIDA',
+          cantidad: Types.Decimal128.fromString('1'),
+          partida_id: `c0000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+          orden_compra_id: null,
+          periodo,
+          cerrado: false,
+          supera_stock: false,
+          registrado_por: 'almacenero-prueba',
+          registrado_en: new Date('2030-01-15T12:00:00Z'),
+          nota_remision: null,
+        })),
+      );
+      try {
+        const salida = await salidaDe('consumos_partida', {
+          obraId: obra(3),
+          periodo,
+        });
+        expect(salida.filas).toHaveLength(200);
+        expect(salida.truncado).toBe(true);
+      } finally {
+        await movimientos.deleteMany({ obra_id: obra(3), periodo });
+      }
     });
   });
 });
