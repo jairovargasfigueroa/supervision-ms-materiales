@@ -105,6 +105,28 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 - Van directo a `plataforma.fallidos`: un cuerpo que no es JSON o sin sobre válido (`id`, `tipo`, `version` 1, `datos`), `datos` incompletos y los tipos que todavía no tienen consumidor.
 - En `plataforma.fallidos` el cuerpo es el original sin cambios y los encabezados dicen por qué: `x-error` (texto del error), `x-intentos` (fallos), `x-cola-origen` (`materiales`) y `x-clave-origen` (clave de enrutamiento original).
 
-## Herramientas MCP (capa 5, solo lectura)
+## Herramientas MCP (capa 5, solo lectura) · 501
 
-`consumos_partida`, `stock_obra`. Se especifican en la capa 5.
+Ruta: `POST /mcp` (MCP, HTTP «streamable», sin estado, respuestas JSON; versión común 2025-11-25) · Rol: `agente_ia` (*service account* de `ia-agentes`) · Solo lo llama el servicio de IA
+
+- Mismo token que el REST: sin token o inválido `401 NO_AUTENTICADO`; con token válido sin `agente_ia` (también `gerente` o `admin`) `403 SIN_PERMISO`. `GET` y `DELETE /mcp` responden `405` (no hay sesión ni flujo SSE). `agente_ia` ve todas las obras de `obra_acceso` (como `gerente`); ningún endpoint REST lo acepta.
+- `tools/list` publica solo `consumos_partida` y `stock_obra`, cada una con `inputSchema` y `outputSchema` (JSON Schema con `additionalProperties: false`) y `annotations: { readOnlyHint: true, openWorldHint: false }`. Sin recursos ni *prompts*.
+- Resultado: `structuredContent` con la salida y el mismo JSON como texto en `content`.
+- Errores de herramienta (resultado con `isError: true` y texto JSON `{"codigo", "mensaje"}`): `ARGUMENTO_INVALIDO` (no cumple el esquema: tipo, formato, rango o campo de más; no consulta la base), `OBRA_NO_ENCONTRADA` (la obra no está en `obra_acceso`), `ERROR_INTERNO` (fallo de la base o la consulta pasa de 5 s). Una herramienta que no existe es un error del protocolo.
+- Registro: una línea JSON por llamada con `herramienta`, `argumentos`, `filas`, `duracionMs` y `requestId` (`X-Request-Id`); nunca el token.
+
+### `stock_obra {obraId?, estados?, limite?}`
+
+«Devuelve el stock de materiales por obra, al día, con su mínimo y su estado (BAJO, JUSTO, OK), primero los más críticos.»
+
+- Entrada: `obraId` (uuid, opcional; sin él, todas las obras de `obra_acceso`), `estados` (lista de `BAJO`, `JUSTO`, `OK`; por defecto los tres), `limite` (entero 1 a 100; por defecto 100).
+- Salida: `{ "filas": [{ "obraId", "obraNombre", "materialId", "codigo", "nombre", "unidad", "cantidad", "minimo", "estado" }], "total", "truncado" }`.
+- `obraNombre` sale de `obra_acceso.nombre`; estado como en `GET /obras/{obraId}/stock`. Orden: `BAJO`, `JUSTO`, `OK`, luego nombre de obra y código del material. `total` = filas que cumplen el filtro (antes de recortar); `truncado` = `total > limite`.
+
+### `consumos_partida {obraId, periodo, partidaId?}`
+
+«Devuelve el material usado (suma de salidas) por partida y material de una obra en un periodo, con las salidas que superaron el stock. Sirve para comparar con lo previsto de avance_obra.»
+
+- Entrada: `obraId` (uuid, obligatorio), `periodo` (`AAAA-MM`, obligatorio), `partidaId` (uuid, opcional).
+- Salida: `{ "obraId", "periodo", "cerrado", "filas": [{ "partidaId", "materialId", "codigo", "nombre", "unidad", "usado", "salidas", "salidasSuperanStock" }], "truncado" }`.
+- `usado` = suma de salidas (misma agregación que `GET /obras/{obraId}/consumos`); `salidas` = cuántas salidas; `salidasSuperanStock` = cuántas con `supera_stock`. `cerrado` = `cierre_periodo` `CERRADO` para la obra y el periodo. Orden por `partidaId` y `materialId`; máximo 200 filas (`truncado` si hay más).

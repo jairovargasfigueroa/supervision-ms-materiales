@@ -4,7 +4,7 @@ Obligatorio para todo el código de este servicio. Si algo no encaja, propón el
 
 ## Librerías
 
-NestJS 12, `@nestjs/config`, `@nestjs/mongoose` + `mongoose` 9, `class-validator` 0.15 + `class-transformer` 0.5 (con `ValidationPipe` global, `whitelist` y `transform`), `@nestjs/swagger` 12 (Swagger UI en `/docs` solo en desarrollo), `amqplib`, `jose` 6. Pruebas: Vitest, `supertest`, `mongodb-memory-server` 11 en modo *replica set*. Módulos ES: imports con extensión `.js`.
+NestJS 12, `@nestjs/config`, `@nestjs/mongoose` + `mongoose` 9, `class-validator` 0.15 + `class-transformer` 0.5 (con `ValidationPipe` global, `whitelist` y `transform`), `@nestjs/swagger` 12 (Swagger UI en `/docs` solo en desarrollo), `amqplib`, `jose` 6, `@modelcontextprotocol/server` 2.4 + `@modelcontextprotocol/express` 2.0 + `zod` 4 (501; el transporte HTTP sin estado es `WebStandardStreamableHTTPServerTransport` de `@modelcontextprotocol/server`, porque el adaptador de Express solo trae *middleware*; **`zod` solo dentro de `src/mcp/`**, porque lo exige el SDK de MCP; el resto del servicio valida con `class-validator`). Pruebas: Vitest, `supertest`, `mongodb-memory-server` 11 en modo *replica set*. Módulos ES: imports con extensión `.js`.
 
 ## Árbol (Clean Architecture)
 
@@ -93,6 +93,16 @@ src/
       dto/registrar-movimiento.dto.ts, dto/movimiento-registrado.respuesta.ts, dto/listar-movimientos.dto.ts, dto/movimiento.respuesta.ts,
       dto/consultar-consumos.dto.ts, dto/consumo.respuesta.ts
     movimientos.module.ts
+  mcp/                             # servidor MCP de solo lectura (501): adaptador de entrada (capa presentacion); único lugar con `zod`
+    mcp.module.ts                  # importa StockModule y MovimientosModule (casos de uso de lectura)
+    presentacion/
+      mcp.controller.ts            # POST /mcp con @Roles('agente_ia'); GET y DELETE /mcp → 405
+      transporte-http.ts           # petición de Express → Request web → WebStandardStreamableHTTPServerTransport (sin estado, JSON) → respuesta de Express
+      servidor-mcp.ts              # crearServidorMcp(contexto): McpServer nuevo por petición con las dos herramientas
+      herramienta.ts               # registrarHerramienta: esquemas zod (el SDK no valida: se valida aquí para responder ARGUMENTO_INVALIDO), anotaciones de solo lectura,
+                                   # resultado (structuredContent + texto), errores como resultado, tiempo máximo 5 s y una línea JSON de registro por llamada
+      esquemas.ts                  # uuid, periodo y lista de estados en zod
+      herramientas/stock-obra.herramienta.ts, herramientas/consumos-partida.herramienta.ts
   semilla/                         # datos de prueba (011): infraestructura; ningún módulo del negocio la importa
     main.ts                        # `node dist/semilla/main.js cargar|vaciar` (npm run semilla / semilla:vaciar): contexto sin HTTP, resumen, código de salida
     semilla.module.ts              # SemillaModule.registrar(config?): configuración + Mongoose (con la guarda antes de conectar) + esquemas; sin mensajería
@@ -122,6 +132,7 @@ test/
   stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
   cierres.e2e-spec.ts              # CerrarConsumos y ReabrirConsumos (008): cierre_periodo, movimientos marcados, outbox, idempotencia, otra planilla, fallidos
   semilla.e2e-spec.ts              # semilla (011) con D = 2026-10-28: dos cargas sin duplicar, stock y estados, supera_stock, cerrado, consumos, /stock/resumen, vaciar, guarda
+  mcp.e2e-spec.ts                  # /mcp (501): 401/403/200, 405, tools/list exacto, cifras iguales al REST, truncado, argumentos inválidos, obra inexistente, solo lectura
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 
