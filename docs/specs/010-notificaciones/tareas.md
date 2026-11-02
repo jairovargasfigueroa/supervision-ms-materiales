@@ -2,7 +2,7 @@
 
 Requisitos y diseño: `docs/specs/010-notificaciones/` de la carpeta que agrupa los proyectos. Contratos: `docs/contratos.md` de este proyecto.
 
-Si la 201 ya está hecha (`StockBajo` ampliado con `obraNombre` y `material{…}`), marca la tarea sin cambios de código y anótalo en el commit de documentación.
+La 201 ya no amplía `StockBajo` (pasó a ser la cobranza automática el 01/11/2026): si la 010 necesita `obraNombre` y `material{…}` en el evento, los agrega ella.
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
