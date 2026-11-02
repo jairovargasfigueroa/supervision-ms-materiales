@@ -14,7 +14,7 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 | unidad | string | bolsa, kg, m³, … |
 | unidad_plural | string | |
 | precio_referencial | decimal | |
-| proveedor_habitual_id | string | ref Finanzas (capa 2); nulo si no tiene. Por ahora solo lo escribe la semilla (011); la API lo expone en la 201 |
+| proveedor_habitual_id | string | sin uso: era para la compra automática, que la 201 reemplazó por la cobranza (01/11/2026). Lo escribe la semilla (011); no se borra para no tocarla |
 | activo | bool | |
 | atributos | arreglo de `{ nombre, valor }` | embebido; varía según el tipo de material |
 
@@ -40,7 +40,7 @@ El estado (`BAJO`, `JUSTO`, `OK`) no se guarda: se calcula al leer (reglas del n
 | tipo | string | `INGRESO`, `SALIDA` |
 | cantidad | decimal | |
 | partida_id | string | ref Obras; obligatorio en salidas |
-| orden_compra_id | string | ref Finanzas; en ingresos de una compra (capa 2) |
+| orden_compra_id | string | sin uso (era de la compra automática, reemplazada por la cobranza en la 201) |
 | periodo | string | `AAAA-MM` |
 | cerrado | bool | true cuando el periodo se cerró |
 | supera_stock | bool | la salida superó el stock que había (alerta) |
