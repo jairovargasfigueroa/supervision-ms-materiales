@@ -1,4 +1,4 @@
-import { type DynamicModule, Module } from '@nestjs/common';
+import { type DynamicModule, Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
@@ -31,19 +31,24 @@ import {
   StockObraSchema,
 } from '../stock/infraestructura/stock-obra.schema.js';
 import { CargarSemilla } from './cargar-semilla.js';
-import { verificarGuarda } from './guarda.js';
+import { type ModoSemilla, verificarGuarda } from './guarda.js';
 import { VaciarSemilla } from './vaciar.js';
 
 /**
  * Contexto de la semilla (011): solo la configuración y los esquemas de Mongoose, sin HTTP, sin
  * RabbitMQ y sin el publicador del outbox. La guarda corre antes de conectarse: con
- * `NODE_ENV=production` o una base que no es local, el módulo no arranca.
+ * `NODE_ENV=production` o una base que no es local, el módulo no arranca, salvo que `modo` sea
+ * `cargar` y `SEMILLA_DEMO=si` (601). `VaciarSemilla` vuelve a pedir la guarda estricta.
  *
  * `config` reemplaza al `.env` (pruebas); sin él, se lee el `.env` y las variables de entorno.
+ * Sin `modo`, la guarda es la estricta.
  */
 @Module({})
 export class SemillaModule {
-  static registrar(config?: Record<string, string>): DynamicModule {
+  static registrar(
+    config?: Record<string, string>,
+    modo?: ModoSemilla,
+  ): DynamicModule {
     return {
       module: SemillaModule,
       imports: [
@@ -56,10 +61,17 @@ export class SemillaModule {
           inject: [ConfigService],
           useFactory: (configuracion: ConfigService) => {
             const uri = configuracion.get<string>('MONGODB_URI');
-            verificarGuarda({
+            const demostracion = verificarGuarda({
               nodeEnv: configuracion.get<string>('NODE_ENV'),
               mongoUri: uri,
+              semillaDemo: configuracion.get<string>('SEMILLA_DEMO'),
+              modo,
             });
+            if (demostracion) {
+              new Logger('Semilla').warn(
+                'SEMILLA_DEMO=si: se cargan los datos de demostración (solo carga, sin vaciar).',
+              );
+            }
             // Sin reintentos largos: si MongoDB no responde, la semilla falla enseguida.
             return {
               uri,

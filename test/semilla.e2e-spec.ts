@@ -54,11 +54,17 @@ describe('Semilla de datos de prueba (e2e, 011)', () => {
   let semilla: INestApplicationContext;
   const tokens: Record<string, string> = {};
 
-  const contextoSemilla = (config: Record<string, string>) =>
-    NestFactory.createApplicationContext(SemillaModule.registrar(config), {
-      logger: false,
-      abortOnError: false,
-    });
+  const contextoSemilla = (
+    config: Record<string, string>,
+    modo?: 'cargar' | 'vaciar',
+  ) =>
+    NestFactory.createApplicationContext(
+      SemillaModule.registrar(config, modo),
+      {
+        logger: false,
+        abortOnError: false,
+      },
+    );
   const cargar = (d = D) => semilla.get(CargarSemilla).ejecutar(d);
   const contar = async () => {
     const conteos: Record<string, number> = {};
@@ -351,5 +357,59 @@ describe('Semilla de datos de prueba (e2e, 011)', () => {
         NODE_ENV: 'development',
       }),
     ).rejects.toBeInstanceOf(GuardaSemillaError);
+  });
+
+  describe('SEMILLA_DEMO=si (601: datos de demostración)', () => {
+    const PRODUCCION_DEMO = () => ({
+      MONGODB_URI: prueba.uri,
+      NODE_ENV: 'production',
+      SEMILLA_DEMO: 'si',
+    });
+
+    it('con NODE_ENV=production carga igual que en desarrollo, sin duplicar', async () => {
+      const demo = await contextoSemilla(PRODUCCION_DEMO(), 'cargar');
+      try {
+        const primera = await demo.get(CargarSemilla).ejecutar(D);
+        const segunda = await demo.get(CargarSemilla).ejecutar(D);
+        expect(primera.insertados).toMatchObject({
+          material: 15,
+          movimiento: 67,
+        });
+        expect(Object.values(segunda.insertados).every((n) => n === 0)).toBe(
+          true,
+        );
+        expect(segunda.totales).toEqual(primera.totales);
+      } finally {
+        await demo.close();
+      }
+    });
+
+    it('nunca vacía: ni con el modo vaciar ni desde un contexto de carga', async () => {
+      await cargar();
+      await expect(
+        contextoSemilla(PRODUCCION_DEMO(), 'vaciar'),
+      ).rejects.toBeInstanceOf(GuardaSemillaError);
+      // Sin modo, la guarda es la estricta
+      await expect(contextoSemilla(PRODUCCION_DEMO())).rejects.toBeInstanceOf(
+        GuardaSemillaError,
+      );
+      const demo = await contextoSemilla(PRODUCCION_DEMO(), 'cargar');
+      try {
+        await expect(demo.get(VaciarSemilla).ejecutar()).rejects.toBeInstanceOf(
+          GuardaSemillaError,
+        );
+      } finally {
+        await demo.close();
+      }
+      expect(await contar()).toMatchObject({ material: 15, movimiento: 67 });
+    });
+
+    it('con otro valor (no, true) la guarda sigue igual', async () => {
+      for (const SEMILLA_DEMO of ['no', 'true', '']) {
+        await expect(
+          contextoSemilla({ ...PRODUCCION_DEMO(), SEMILLA_DEMO }, 'cargar'),
+        ).rejects.toBeInstanceOf(GuardaSemillaError);
+      }
+    });
   });
 });

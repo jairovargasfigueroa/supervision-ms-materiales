@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { CargarSemilla, COLECCIONES_SEMILLA } from './cargar-semilla.js';
 import { fechaDeCarga } from './fecha-relativa.js';
+import type { ModoSemilla } from './guarda.js';
 import { SemillaModule } from './semilla.module.js';
 import { COLECCIONES_NEGOCIO, VaciarSemilla } from './vaciar.js';
 
@@ -12,7 +13,8 @@ import { COLECCIONES_NEGOCIO, VaciarSemilla } from './vaciar.js';
  * - `node dist/semilla/main.js cargar` (`npm run semilla`): carga sin pisar lo que existe;
  * - `node dist/semilla/main.js vaciar` (`npm run semilla:vaciar`): vacía las colecciones del negocio.
  *
- * Lee `MONGODB_URI` y `NODE_ENV` del `.env` o del entorno, y la fecha de carga D de
+ * Lee `MONGODB_URI`, `NODE_ENV` y `SEMILLA_DEMO` (601: `si` permite **solo la carga** en un
+ * entorno de demostración) del `.env` o del entorno, y la fecha de carga D de
  * `SEMILLA_FECHA` (por defecto, hoy en La Paz). Termina con código 0 si todo salió bien, 1 si
  * falló (guarda, datos que no cuadran, MongoDB) y 2 si el modo no existe.
  */
@@ -65,7 +67,7 @@ async function principal(modo: string): Promise<void> {
     return;
   }
   const contexto = await NestFactory.createApplicationContext(
-    SemillaModule.registrar(),
+    SemillaModule.registrar(undefined, modo as ModoSemilla),
     { logger: ['error', 'warn'], abortOnError: false },
   );
   try {
