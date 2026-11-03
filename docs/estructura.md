@@ -160,3 +160,17 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 - Unitarias del dominio y de los casos de uso con repositorios en memoria.
 - `test/*.e2e-spec.ts` con `mongodb-memory-server` (replica set) y tokens firmados con una clave de prueba.
 - `npm test` y `npm run test:e2e` (los archivos e2e corren de a uno: cada uno levanta su MongoDB en memoria).
+
+## Imagen y CI (601)
+
+En la raíz del proyecto:
+
+```
+Dockerfile        dos etapas sobre node:24.22.0-alpine3.24: `construir` (npm ci, npm run build, npm prune --omit=dev) y `final`
+                  (package.json, node_modules de producción y dist; NODE_ENV=production, PORT=8082, usuario `node`,
+                  HEALTHCHECK con fetch a /salud, etiqueta OCI `org.opencontainers.image.source`; CMD node dist/main.js)
+.dockerignore     .git, node_modules, dist, .env*, *.log, coverage, test, docs y el resto de la lista común
+```
+
+- La semilla también viaja en la imagen: `node dist/semilla/main.js cargar` (con `SEMILLA_DEMO=si` en un entorno de demostración, porque la imagen trae `NODE_ENV=production`).
+- Las pruebas no corren dentro del `docker build`: corren antes, en el workflow.
