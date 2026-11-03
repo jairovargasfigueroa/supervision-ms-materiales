@@ -1,0 +1,81 @@
+# 601: en cada pull request a develop o main, lint, tipos, pruebas (unitarias y e2e), compilación y la
+# imagen sin publicar; en push a main (release), además publica la imagen en GHCR con sha-<7> y main.
+# Sin secretos de la aplicación: solo el GITHUB_TOKEN para publicar.
+name: ci
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGEN: ghcr.io/jairovargasfigueroa/supervision-ms-materiales
+
+jobs:
+  prueba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      # Las e2e usan MongoDB en replica set con mongodb-memory-server (docs/estructura.md):
+      # npm ci descarga su binario de MongoDB, que se guarda entre ejecuciones.
+      - name: Caché del binario de MongoDB de las pruebas
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Tipos
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Pruebas unitarias
+        run: npm test
+      - name: Pruebas e2e
+        run: npm run test:e2e
+      - name: Compilación
+        run: npm run build
+
+  imagen:
+    needs: prueba
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Etiqueta sha-<7>
+        id: etiqueta
+        run: echo "sha=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Iniciar sesión en GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # En un PR solo construye; en push a main construye y publica
+      - name: Imagen
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ env.IMAGEN }}:${{ steps.etiqueta.outputs.sha }}
+            ${{ env.IMAGEN }}:main
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

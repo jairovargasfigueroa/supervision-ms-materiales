@@ -170,7 +170,11 @@ Dockerfile        dos etapas sobre node:24.22.0-alpine3.24: `construir` (npm ci,
                   (package.json, node_modules de producción y dist; NODE_ENV=production, PORT=8082, usuario `node`,
                   HEALTHCHECK con fetch a /salud, etiqueta OCI `org.opencontainers.image.source`; CMD node dist/main.js)
 .dockerignore     .git, node_modules, dist, .env*, *.log, coverage, test, docs y el resto de la lista común
+.github/workflows/ci.yml
+                  job `prueba` (npm ci, lint, tipos con tsc --noEmit, pruebas unitarias y e2e, compilación) y job `imagen`
+                  (en PR: build sin publicar; en push a main: push a ghcr.io/jairovargasfigueroa/supervision-ms-materiales
+                  con sha-<7> y main; caché de capas type=gha; solo GITHUB_TOKEN)
 ```
 
 - La semilla también viaja en la imagen: `node dist/semilla/main.js cargar` (con `SEMILLA_DEMO=si` en un entorno de demostración, porque la imagen trae `NODE_ENV=production`).
-- Las pruebas no corren dentro del `docker build`: corren antes, en el workflow.
+- Las pruebas no corren dentro del `docker build`: corren antes, en el workflow. Las e2e del workflow usan, como en local, MongoDB en *replica set* con `mongodb-memory-server` (su binario se guarda con `actions/cache`), no un contenedor de servicio.
