@@ -1,10 +1,11 @@
-# 601 · Contenedores y CI/CD · tareas de `services/materiales`
+# 601 · Preparar el despliegue · tareas de `services/materiales`
 
-Requisitos y diseño: `docs/specs/601-contenedores-ci/` de la carpeta que agrupa los proyectos. Contratos: `docs/contratos.md` de este proyecto.
+Requisitos y diseño: `docs/specs/601-contenedores-ci/` de la carpeta que agrupa los proyectos. Al implementarla, estas tareas reemplazan a `services/materiales/docs/specs/601-contenedores-ci/tareas.md` (eran del borrador anterior).
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Variables con valores de desarrollo por defecto: `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `AUDIENCIA`, `MATERIALES_S3_*` (102) y las propuestas `MATERIALES_S3_REGION` y `RABBITMQ_URL` (`amqps://` en producción); con `MATERIALES_S3_ENDPOINT` vacío usa S3 real
-- [ ] `Dockerfile` (`node:24-alpine` en dos etapas, usuario `node`, `HEALTHCHECK`) y `.dockerignore`
-- [ ] `.github/workflows/ci-cd.yml`: lint y pruebas con MongoDB de servicio en *replica set*, imagen en Artifact Registry, despliegue con `deploy-cloudrun@v3` por OIDC
-- [ ] Comprobar: imagen sin `.env`, usuario sin privilegios, `/salud` responde
+- [x] Aplicar «Cambios a contratos y datos» que tocan este proyecto (`docs/`, `CLAUDE.md`, `.env.example`)
+- [ ] Revisar que no quede ninguna dirección fija; TLS por `MONGODB_URI` y `RABBITMQ_URL` (`amqps://`); `NODE_ENV=production`
+- [ ] `Dockerfile` en dos etapas y `.dockerignore` (Node 24, usuario `node`, `HEALTHCHECK`, etiqueta OCI); prueba con `/salud`
+- [ ] Semilla: excepción `SEMILLA_DEMO=si` (solo carga); pruebas
+- [ ] `.github/workflows/ci.yml`: job `prueba` (lint, pruebas unitarias y e2e con MongoDB en *replica set* como servicio, compilación) y job `imagen` (build en PR; *push* a GHCR con `sha-<7>` y `main` en `main`)
