@@ -38,7 +38,7 @@ SEMILLA_FECHA=2026-10-28 npm run semilla
 
 **Configuración.** Usa `MONGODB_URI` (MongoDB como *replica set*: la carga va en una transacción) y `NODE_ENV`, del `.env` o del entorno (el entorno manda). Solo se conecta a MongoDB: no levanta HTTP, no se conecta a RabbitMQ y no publica eventos (`outbox_evento` queda vacía).
 
-**Guardas.** La carga y el vaciado se niegan a correr, sin conectarse a la base, si `NODE_ENV=production` o si algún host de `MONGODB_URI` no es `localhost`, `127.0.0.1`, `::1` o `mongo` (el contenedor del Docker Compose de infra); `mongodb+srv://` tampoco se acepta. La variable `SEMILLA_PERMITIDA=si` la revisan los scripts de infra.
+**Guardas.** La carga y el vaciado se niegan a correr, sin conectarse a la base, si `NODE_ENV=production` o si algún host de `MONGODB_URI` no es `localhost`, `127.0.0.1`, `::1` o `mongo` (el contenedor del Docker Compose de infra); `mongodb+srv://` tampoco se acepta. La variable `SEMILLA_PERMITIDA=si` la revisan los scripts de infra. Excepción para un entorno de demostración (601): con `SEMILLA_DEMO=si`, la **carga** corre aunque `NODE_ENV=production` o la base no sea local (sigue sin duplicar ni pisar nada); el **vaciado** se niega siempre fuera de desarrollo, con o sin `SEMILLA_DEMO`.
 
 **Verificación.** Antes de escribir, la carga calcula `periodo`, `cerrado`, `supera_stock` y la cantidad de cada `stock_obra` recorriendo los movimientos (ingresos antes que salidas el mismo día) con las reglas del dominio, y **falla sin escribir nada** si el stock después de algún movimiento, la cantidad final o el estado (`BAJO`, `JUSTO`, `OK`) no coinciden con los de `src/semilla/materiales.json` (copia del documento).
 

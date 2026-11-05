@@ -1,4 +1,9 @@
-import { GuardaSemillaError, hostsDeUri, verificarGuarda } from './guarda.js';
+import {
+  esSemillaDemo,
+  GuardaSemillaError,
+  hostsDeUri,
+  verificarGuarda,
+} from './guarda.js';
 
 const LOCAL = 'mongodb://localhost:27017/materiales_db?replicaSet=rs0';
 
@@ -45,6 +50,90 @@ describe('guarda de la semilla (011)', () => {
       );
     },
   );
+
+  it('sin SEMILLA_DEMO devuelve false (no usó la excepción)', () => {
+    expect(
+      verificarGuarda({
+        nodeEnv: 'development',
+        mongoUri: LOCAL,
+        modo: 'cargar',
+      }),
+    ).toBe(false);
+  });
+
+  describe('SEMILLA_DEMO=si (601)', () => {
+    const REMOTA = 'mongodb+srv://u:p@cluster0.abcde.mongodb.net/materiales_db';
+
+    it.each([
+      ['production', LOCAL],
+      ['production', REMOTA],
+      [undefined, 'mongodb://10.0.0.5:27017/materiales_db'],
+    ])('permite cargar con NODE_ENV=%s y %s', (nodeEnv, mongoUri) => {
+      expect(
+        verificarGuarda({
+          nodeEnv,
+          mongoUri,
+          semillaDemo: 'si',
+          modo: 'cargar',
+        }),
+      ).toBe(true);
+    });
+
+    it.each(['vaciar', undefined] as const)(
+      'nunca permite el modo %s fuera de desarrollo',
+      (modo) => {
+        expect(() =>
+          verificarGuarda({
+            nodeEnv: 'production',
+            mongoUri: LOCAL,
+            semillaDemo: 'si',
+            modo,
+          }),
+        ).toThrow(GuardaSemillaError);
+        expect(() =>
+          verificarGuarda({
+            nodeEnv: undefined,
+            mongoUri: REMOTA,
+            semillaDemo: 'si',
+            modo,
+          }),
+        ).toThrow(GuardaSemillaError);
+      },
+    );
+
+    it.each([undefined, '', 'postgres://db/x'])(
+      'sigue exigiendo una MONGODB_URI de MongoDB (%s)',
+      (mongoUri) => {
+        expect(() =>
+          verificarGuarda({
+            nodeEnv: 'production',
+            mongoUri,
+            semillaDemo: 'si',
+            modo: 'cargar',
+          }),
+        ).toThrow(GuardaSemillaError);
+      },
+    );
+
+    it('solo «si» habilita la excepción', () => {
+      expect(['si', 'SI', ' si '].map(esSemillaDemo)).toEqual([
+        true,
+        true,
+        true,
+      ]);
+      expect(
+        [undefined, '', 'no', 'true', 'sí', '1'].map(esSemillaDemo),
+      ).toEqual([false, false, false, false, false, false]);
+      expect(() =>
+        verificarGuarda({
+          nodeEnv: 'production',
+          mongoUri: LOCAL,
+          semillaDemo: 'true',
+          modo: 'cargar',
+        }),
+      ).toThrow(/NODE_ENV=production/);
+    });
+  });
 
   it('hostsDeUri saca los hosts sin credenciales ni puerto', () => {
     expect(

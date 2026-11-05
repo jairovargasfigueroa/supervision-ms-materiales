@@ -105,14 +105,14 @@ src/
       herramientas/stock-obra.herramienta.ts, herramientas/consumos-partida.herramienta.ts
   semilla/                         # datos de prueba (011): infraestructura; ningún módulo del negocio la importa
     main.ts                        # `node dist/semilla/main.js cargar|vaciar` (npm run semilla / semilla:vaciar): contexto sin HTTP, resumen, código de salida
-    semilla.module.ts              # SemillaModule.registrar(config?): configuración + Mongoose (con la guarda antes de conectar) + esquemas; sin mensajería
-    guarda.ts                      # verificarGuarda: NODE_ENV=production o host de MONGODB_URI no local → GuardaSemillaError
+    semilla.module.ts              # SemillaModule.registrar(config?, modo?): configuración + Mongoose (con la guarda antes de conectar) + esquemas; sin mensajería
+    guarda.ts                      # verificarGuarda: NODE_ENV=production o host de MONGODB_URI no local → GuardaSemillaError; 601: con modo `cargar` y SEMILLA_DEMO=si se permite (devuelve true); vaciar, nunca
     fecha-relativa.ts              # resolver(expresion, D) (D±n, D±n hh:mm, M0, M±k, M±k/dd hh:mm en America/La_Paz), fechaDeCarga(SEMILLA_FECHA)
     materiales.json                # copia de docs/datos-prueba.md (secciones 5, 6 y 9), con fechas relativas
     datos-semilla.ts               # tipos del archivo y leerDatosSemilla (valida la forma)
     preparar-semilla.ts            # prepararSemilla: fechas, periodo, cerrado, supera_stock y stock con las reglas del dominio; verifica contra el documento
     cargar-semilla.ts              # CargarSemilla: upsert con $setOnInsert por _id en una transacción; conteos
-    vaciar.ts                      # VaciarSemilla: deleteMany de las colecciones del negocio (incluye outbox_evento y mensaje_procesado) en una transacción
+    vaciar.ts                      # VaciarSemilla: guarda estricta y deleteMany de las colecciones del negocio (incluye outbox_evento y mensaje_procesado) en una transacción
 test/
   utilidades/tokens-prueba.ts      # par de claves RSA de prueba, JWKS local y tokens firmados (firmarConRoles(roles, azp) por rol)
   utilidades/canal-prueba.ts       # dobles del canal de RabbitMQ (CanalPrueba) y de RabbitCliente para el outbox (RabbitPrueba), y mensajes de prueba
@@ -131,7 +131,7 @@ test/
   consumos.e2e-spec.ts             # GET /obras/{id}/consumos: solo salidas del periodo, 400 sin periodo, 403 por rol, 404 por acceso
   stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
   cierres.e2e-spec.ts              # CerrarConsumos y ReabrirConsumos (008): cierre_periodo, movimientos marcados, outbox, idempotencia, otra planilla, fallidos
-  semilla.e2e-spec.ts              # semilla (011) con D = 2026-10-28: dos cargas sin duplicar, stock y estados, supera_stock, cerrado, consumos, /stock/resumen, vaciar, guarda
+  semilla.e2e-spec.ts              # semilla (011) con D = 2026-10-28: dos cargas sin duplicar, stock y estados, supera_stock, cerrado, consumos, /stock/resumen, vaciar, guarda; SEMILLA_DEMO=si (601): carga en producción, nunca vacía
   mcp.e2e-spec.ts                  # /mcp (501): 401/403/200, 405, tools/list exacto, cifras iguales al REST, truncado, argumentos inválidos, obra inexistente, solo lectura
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
@@ -148,6 +148,7 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 - Acceso a una obra: los casos de uso que reciben un `obraId` importan `AccesoObraModule` y llaman a `AccesoObraServicio` con el `UsuarioAutenticado` (el servicio aplica `rolesEfectivos`): `exigirVer` para leer (003, 004, 006), `exigirRegistrarMovimientos` para `POST /movimientos` (004) y `filtrarVisibles` para listas de obras (009). La obra que no está en `obra_acceso` o que el usuario no ve responde `404 OBRA_NO_ENCONTRADA`, también para `admin`.
 - Escrituras con varias colecciones (movimiento + stock + outbox) en una transacción de MongoDB (`transaccion.ts`). Los eventos se publican siempre por el outbox: el caso de uso llama a `Outbox.agregar(tipo, datos, correlacionId)` dentro de `Transaccion.ejecutar`; nunca publica directo en RabbitMQ. Los repositorios pasan `sesionActual()` a cada operación (`.session(sesionActual())` o `{ session: sesionActual() }`); fuera de una transacción es `null` y no cambia nada.
 - Mensajes recibidos: cada módulo que escucha un tipo tiene un manejador (`ManejadorMensaje`) en su `infraestructura/` que se registra en `ConsumidorMensajes` en `onModuleInit`, valida `datos` (si faltan, `MensajeInvalidoError`) y llama a su caso de uso. El consumidor lo ejecuta dentro del inbox (`mensaje_procesado` + escrituras del caso de uso en una transacción).
+- Configuración solo por variables (601): ninguna dirección de otro servicio, de Keycloak, de MongoDB ni de RabbitMQ en el código (`MONGODB_URI`, `KEYCLOAK_URL`, `KEYCLOAK_REALM` y `AUDIENCIA` con `getOrThrow`; sin `RABBITMQ_URL` no se conecta a RabbitMQ, lo avisa en el registro y los eventos esperan en el outbox). TLS por la URL (`mongodb+srv://` o `?tls=true`; `amqps://`) y una CA adicional con `NODE_EXTRA_CA_CERTS`. `NODE_ENV=production`: registros en JSON (`main.ts`); Problem Details nunca lleva la traza (solo se registra). La URL `http://localhost` de `mcp/presentacion/transporte-http.ts` es solo la base del `Request` web que se arma en memoria, no una dirección a la que se llame.
 - Nombres de archivo en `kebab-case` con sufijo de tipo (`.caso-uso.ts`, `.controller.ts`, `.schema.ts`, `.dto.ts`); clases en español.
 
 ## Ejemplo de punta a punta
@@ -159,3 +160,21 @@ src/**/*.spec.ts                   # unitarias junto al archivo
 - Unitarias del dominio y de los casos de uso con repositorios en memoria.
 - `test/*.e2e-spec.ts` con `mongodb-memory-server` (replica set) y tokens firmados con una clave de prueba.
 - `npm test` y `npm run test:e2e` (los archivos e2e corren de a uno: cada uno levanta su MongoDB en memoria).
+
+## Imagen y CI (601)
+
+En la raíz del proyecto:
+
+```
+Dockerfile        dos etapas sobre node:24.22.0-alpine3.24: `construir` (npm ci, npm run build, npm prune --omit=dev) y `final`
+                  (package.json, node_modules de producción y dist; NODE_ENV=production, PORT=8082, usuario `node`,
+                  HEALTHCHECK con fetch a /salud, etiqueta OCI `org.opencontainers.image.source`; CMD node dist/main.js)
+.dockerignore     .git, node_modules, dist, .env*, *.log, coverage, test, docs y el resto de la lista común
+.github/workflows/ci.yml
+                  job `prueba` (npm ci, lint, tipos con tsc --noEmit, pruebas unitarias y e2e, compilación) y job `imagen`
+                  (en PR: build sin publicar; en push a main: push a ghcr.io/jairovargasfigueroa/supervision-ms-materiales
+                  con sha-<7> y main; caché de capas type=gha; solo GITHUB_TOKEN)
+```
+
+- La semilla también viaja en la imagen: `node dist/semilla/main.js cargar` (con `SEMILLA_DEMO=si` en un entorno de demostración, porque la imagen trae `NODE_ENV=production`).
+- Las pruebas no corren dentro del `docker build`: corren antes, en el workflow. Las e2e del workflow usan, como en local, MongoDB en *replica set* con `mongodb-memory-server` (su binario se guarda con `actions/cache`), no un contenedor de servicio.
