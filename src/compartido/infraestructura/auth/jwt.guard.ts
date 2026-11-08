@@ -11,7 +11,7 @@ import { TokenInvalidoError, ValidadorToken } from './validador-token.js';
 
 /**
  * Guardia global: exige un token válido de Keycloak en toda ruta que no tenga `@Publico()`
- * y deja el usuario en la petición. Solo autentica; los roles se revisan en otro guardia (001).
+ * y deja el usuario en la petición. Solo autentica; los roles los revisa `RolesGuard` (001).
  */
 @Injectable()
 export class JwtGuard implements CanActivate {

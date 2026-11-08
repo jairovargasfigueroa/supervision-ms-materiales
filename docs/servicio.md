@@ -8,18 +8,18 @@
 - Calcular el stock por obra y su estado (bajo, justo, ok).
 - Informar el material usado por partida y periodo, para compararlo con lo previsto.
 - Cerrar y reabrir los consumos de un periodo (paso 3 de la saga y su compensación).
-- Avisar «stock bajo» para la automatización de compras (capa 2).
+- Avisar «stock bajo» (evento; lo escucha n8n para mandar el *push* al almacenero, 010).
 
 ## Casos de uso
 
 | Caso de uso | Quién | Etapa |
 |---|---|---|
 | Gestionar materiales (catálogo y stock mínimo) | Administración | Base |
-| Registrar ingreso de material | Almacenero | Base |
-| Registrar salida de material | Almacenero, maestro de obra | Base |
+| Registrar ingreso de material | Almacenero asignado | Base |
+| Registrar salida de material | Almacenero asignado (004; el maestro no registra movimientos) | Base |
 | Consultar stock y consumos de una obra | Residente, gerente | Base |
 | Cerrar / reabrir consumos del periodo | Saga (Obras) | Base |
-| Publicar «stock bajo» | Automático | Capa 2 |
+| Publicar «stock bajo» (al cruzar el mínimo, por el outbox) | Automático | Base (003 y 004); lo escucha n8n (010: *push* de stock bajo al almacenero) |
 | Herramientas MCP para los agentes | Servicio de IA | Capa 5 |
 
 ## Qué no hace

@@ -1,0 +1,21 @@
+# Lista común de la 601 (diseño, «Reglas comunes»)
+.git
+node_modules
+vendor
+target
+dist
+.env*
+*.log
+coverage
+.venv
+android
+datos
+# Propios de este proyecto: nada de esto hace falta para compilar
+.github
+.idea
+.vscode
+docs
+test
+*.tsbuildinfo
+Dockerfile
+.dockerignore

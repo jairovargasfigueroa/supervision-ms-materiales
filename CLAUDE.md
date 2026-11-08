@@ -21,9 +21,25 @@ npm run start:dev    # levantar en modo desarrollo
 npm test             # pruebas unitarias
 npm run test:e2e     # pruebas de punta a punta
 npm run lint
+npm run semilla          # datos de prueba (011): nest build + node dist/semilla/main.js cargar
+npm run semilla:vaciar   # vacía las colecciones del negocio: nest build + node dist/semilla/main.js vaciar
 ```
 
 Configuración local: copiar `.env.example` a `.env` y completar. **`.env` nunca se sube.**
+
+## Datos de prueba (011)
+
+- Comandos para infra: `npm run semilla` y `npm run semilla:vaciar`, con la fecha de carga en `SEMILLA_FECHA=AAAA-MM-DD` (PowerShell: `$env:SEMILLA_FECHA = '2026-10-28'; npm run semilla`; Bash: `SEMILLA_FECHA=2026-10-28 npm run semilla`). Sin `SEMILLA_FECHA`, D es hoy en La Paz. Usan `MONGODB_URI` y `NODE_ENV` del `.env` o del entorno.
+- Salida: código 0 bien, 1 falló, 2 modo desconocido; una línea `RESUMEN_SEMILLA {json}` o `RESUMEN_VACIADO {json}` con los conteos (detalle en el README).
+- Los datos están en `src/semilla/materiales.json`, copia de `docs/datos-prueba.md` (secciones 5, 6 y 9): si cambian, se cambia primero el documento. Las fechas van relativas a D (`D-120`, `M-1/09 10:00`); lo derivado (`periodo`, `cerrado`, `supera_stock`, `stock_obra.cantidad`) lo calcula la carga con las reglas del dominio y falla si no coincide con el documento.
+- La semilla no escribe `outbox_evento` ni `mensaje_procesado` y no levanta HTTP ni RabbitMQ. Guarda: se niega con `NODE_ENV=production` o con una base que no es local (`localhost`, `127.0.0.1`, `::1`, `mongo`). Excepción (601): con `SEMILLA_DEMO=si`, **la carga** corre igual en un entorno de demostración (producción o base no local); **el vaciado nunca**.
+- Nunca la corras ni la vacíes contra una base con datos que importen; las pruebas usan `mongodb-memory-server`. Una capa que agrega colecciones o campos amplía la semilla en el mismo trabajo.
+
+## Despliegue (601)
+
+- Imagen: `Dockerfile` en dos etapas (`construir` con `npm ci`, `npm run build` y `npm prune --omit=dev`; `final` con `node dist/main.js`, usuario `node`, `HEALTHCHECK` contra `GET /salud`, puerto 8082). `.dockerignore` deja fuera `.env*`, `node_modules`, `dist` y lo demás de la lista del diseño. La imagen no trae configuración: todo entra por variables al arrancar.
+- Modo producción: `NODE_ENV=production` (registros en JSON; los errores nunca muestran trazas al usuario). TLS por la propia URL: `MONGODB_URI` con `mongodb+srv://` o `?tls=true` y `RABBITMQ_URL` con `amqps://`. Una CA adicional (ensayo local) entra con `NODE_EXTRA_CA_CERTS`, sin cambiar el código.
+- CI: `.github/workflows/ci.yml`; en cada *pull request* a `develop` o `main`, lint, tipos, pruebas unitarias y e2e, compilación y la imagen sin publicar; en *push* a `main`, publica `ghcr.io/jairovargasfigueroa/supervision-ms-materiales` con `sha-<7>` y `main`.
 
 ## Arquitectura: Clean Architecture
 

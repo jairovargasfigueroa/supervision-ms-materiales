@@ -1,7 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AccesoObraModule } from './acceso-obra/acceso-obra.module.js';
+import { CatalogoModule } from './catalogo/catalogo.module.js';
+import { CierresModule } from './cierres/cierres.module.js';
+import { MovimientosModule } from './movimientos/movimientos.module.js';
+import { StockModule } from './stock/stock.module.js';
 import { CompartidoModule } from './compartido/compartido.module.js';
+import { MensajeriaModule } from './compartido/infraestructura/mensajeria/mensajeria.module.js';
+import { McpModule } from './mcp/mcp.module.js';
 import { SaludModule } from './salud/salud.module.js';
 
 @Module({
@@ -15,7 +22,14 @@ import { SaludModule } from './salud/salud.module.js';
       }),
     }),
     CompartidoModule,
+    MensajeriaModule,
     SaludModule,
+    AccesoObraModule,
+    CatalogoModule,
+    StockModule,
+    CierresModule,
+    MovimientosModule,
+    McpModule,
   ],
 })
 export class AppModule {}

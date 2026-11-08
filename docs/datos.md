@@ -14,18 +14,22 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 | unidad | string | bolsa, kg, m³, … |
 | unidad_plural | string | |
 | precio_referencial | decimal | |
-| proveedor_habitual_id | string | ref Finanzas (capa 2) |
+| proveedor_habitual_id | string | sin uso: era para la compra automática, que la 201 reemplazó por la cobranza (01/11/2026). Lo escribe la semilla (011); no se borra para no tocarla |
 | activo | bool | |
 | atributos | arreglo de `{ nombre, valor }` | embebido; varía según el tipo de material |
 
 ### stock_obra
 | Campo | Tipo | Notas |
 |---|---|---|
-| _id | string | `obra_id` + `material_id` |
-| cantidad | decimal | se recalcula con los movimientos |
-| minimo | decimal | stock mínimo para esa obra |
-| version | int | control de concurrencia |
+| _id | string | `obra_id` + `:` + `material_id` |
+| obra_id | string | ref Obras (índice, para listar el stock de una obra) |
+| material_id | string | FK material |
+| cantidad | decimal | se recalcula con los movimientos; 0 al crearse por un mínimo (003) |
+| minimo | decimal | stock mínimo para esa obra (≥ 0) |
+| version | int | control de concurrencia (sube en 1 con cada cambio) |
 | actualizado_en | date | |
+
+El estado (`BAJO`, `JUSTO`, `OK`) no se guarda: se calcula al leer (reglas del negocio). Los `decimal` se guardan como `Decimal128`.
 
 ### movimiento
 | Campo | Tipo | Notas |
@@ -36,7 +40,7 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 | tipo | string | `INGRESO`, `SALIDA` |
 | cantidad | decimal | |
 | partida_id | string | ref Obras; obligatorio en salidas |
-| orden_compra_id | string | ref Finanzas; en ingresos de una compra (capa 2) |
+| orden_compra_id | string | sin uso (era de la compra automática, reemplazada por la cobranza en la 201) |
 | periodo | string | `AAAA-MM` |
 | cerrado | bool | true cuando el periodo se cerró |
 | supera_stock | bool | la salida superó el stock que había (alerta) |
@@ -47,7 +51,7 @@ Base propia: `materiales_db`. Ningún otro servicio la lee. Las referencias a ot
 ### cierre_periodo
 | Campo | Tipo | Notas |
 |---|---|---|
-| _id | string | `obra_id` + `periodo` |
+| _id | string | `obra_id` + `:` + `periodo` (uno solo por obra y periodo) |
 | planilla_id | string | ref Obras |
 | estado | string | `CERRADO`, `REABIERTO` |
 | cerrado_en | date | |
@@ -74,7 +78,7 @@ Copia de las asignaciones de cada obra; llega con `ObraRegistrada`. Sirve para v
 | creado_en | date | |
 | publicado_en | date | nulo hasta publicarse |
 
-Se escribe en la misma transacción de MongoDB que el movimiento o el cierre (requiere MongoDB como *replica set*, también en desarrollo).
+Se escribe en la misma transacción de MongoDB que el dato que lo origina: el mínimo (`StockBajo`, 003), el movimiento (004) o el cierre (008) (requiere MongoDB como *replica set*, también en desarrollo). `OutboxPublicador` publica los pendientes cada segundo, en orden de `creado_en`, y pone `publicado_en` cuando el broker confirma.
 
 ### mensaje_procesado
 | Campo | Tipo | Notas |
@@ -84,8 +88,10 @@ Se escribe en la misma transacción de MongoDB que el movimiento o el cierre (re
 
 ## Índices previstos
 
-- `movimiento`: (`obra_id`, `periodo`), (`obra_id`, `material_id`), (`obra_id`, `partida_id`, `periodo`).
-- `material`: `codigo` único.
+- `movimiento`: (`obra_id`, `periodo`) (`por_obra_periodo`), (`obra_id`, `material_id`) (`por_obra_material`), (`obra_id`, `partida_id`, `periodo`) (`por_obra_partida_periodo`).
+- `material`: `codigo` único (`codigo_unico`).
+- `stock_obra`: `obra_id` (`por_obra`).
+- `outbox_evento`: (`publicado_en`, `creado_en`) (`pendientes`).
 
 ## Relaciones
 

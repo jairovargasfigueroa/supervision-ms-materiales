@@ -4,4 +4,4 @@ Requisitos y diseño: `docs/specs/401-base-reportes/` de la carpeta que agrupa l
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] `MovimientoRegistrado` agrega `precioReferencial` (precio del material al registrar el movimiento) en `datos`; prueba del outbox
+- [x] `MovimientoRegistrado` agrega `precioReferencial` (precio del material al registrar el movimiento) en `datos`; prueba del outbox

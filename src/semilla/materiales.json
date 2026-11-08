@@ -1,0 +1,1136 @@
+{
+  "registradoPor": "a0000000-0000-4000-8000-000000000006",
+  "materiales": [
+    {
+      "id": "e0000000-0000-4000-8000-000000000001",
+      "codigo": "CEM-IP30",
+      "nombre": "Cemento IP-30",
+      "tipo": "CEMENTO",
+      "unidad": "bolsa",
+      "unidadPlural": "bolsas",
+      "precioReferencial": 62,
+      "proveedorHabitualId": "7b1e5c1a-0001-4c3e-9a10-000000000001",
+      "atributos": [
+        {
+          "nombre": "peso",
+          "valor": "50 kg"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000002",
+      "codigo": "FIE-12",
+      "nombre": "Fierro corrugado de 1/2\"",
+      "tipo": "ACERO",
+      "unidad": "kg",
+      "unidadPlural": "kg",
+      "precioReferencial": 8.6,
+      "proveedorHabitualId": "7b1e5c1a-0002-4c3e-9a10-000000000002",
+      "atributos": [
+        {
+          "nombre": "diámetro",
+          "valor": "12 mm"
+        },
+        {
+          "nombre": "largo de barra",
+          "valor": "12 m"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000003",
+      "codigo": "FIE-10",
+      "nombre": "Fierro corrugado de 3/8\"",
+      "tipo": "ACERO",
+      "unidad": "kg",
+      "unidadPlural": "kg",
+      "precioReferencial": 8.7,
+      "proveedorHabitualId": "7b1e5c1a-0002-4c3e-9a10-000000000002",
+      "atributos": [
+        {
+          "nombre": "diámetro",
+          "valor": "10 mm"
+        },
+        {
+          "nombre": "largo de barra",
+          "valor": "12 m"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000004",
+      "codigo": "FIE-06",
+      "nombre": "Fierro corrugado de 1/4\"",
+      "tipo": "ACERO",
+      "unidad": "kg",
+      "unidadPlural": "kg",
+      "precioReferencial": 9.1,
+      "proveedorHabitualId": "7b1e5c1a-0002-4c3e-9a10-000000000002",
+      "atributos": [
+        {
+          "nombre": "diámetro",
+          "valor": "6 mm"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000005",
+      "codigo": "ALA-16",
+      "nombre": "Alambre de amarre N.º 16",
+      "tipo": "ACERO",
+      "unidad": "kg",
+      "unidadPlural": "kg",
+      "precioReferencial": 14.5,
+      "proveedorHabitualId": "7b1e5c1a-0002-4c3e-9a10-000000000002",
+      "atributos": [],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000006",
+      "codigo": "ARE-FIN",
+      "nombre": "Arena fina",
+      "tipo": "AGREGADO",
+      "unidad": "m3",
+      "unidadPlural": "m3",
+      "precioReferencial": 110,
+      "proveedorHabitualId": "7b1e5c1a-0003-4c3e-9a10-000000000003",
+      "atributos": [
+        {
+          "nombre": "uso",
+          "valor": "revoque y mortero"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000007",
+      "codigo": "ARE-GRU",
+      "nombre": "Arena gruesa",
+      "tipo": "AGREGADO",
+      "unidad": "m3",
+      "unidadPlural": "m3",
+      "precioReferencial": 130,
+      "proveedorHabitualId": "7b1e5c1a-0003-4c3e-9a10-000000000003",
+      "atributos": [
+        {
+          "nombre": "uso",
+          "valor": "hormigón"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000008",
+      "codigo": "GRA-34",
+      "nombre": "Grava de 3/4\"",
+      "tipo": "AGREGADO",
+      "unidad": "m3",
+      "unidadPlural": "m3",
+      "precioReferencial": 185,
+      "proveedorHabitualId": "7b1e5c1a-0003-4c3e-9a10-000000000003",
+      "atributos": [
+        {
+          "nombre": "tamaño",
+          "valor": "3/4\""
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000009",
+      "codigo": "PIE-MAN",
+      "nombre": "Piedra manzana",
+      "tipo": "AGREGADO",
+      "unidad": "m3",
+      "unidadPlural": "m3",
+      "precioReferencial": 150,
+      "proveedorHabitualId": "7b1e5c1a-0003-4c3e-9a10-000000000003",
+      "atributos": [
+        {
+          "nombre": "uso",
+          "valor": "cimiento ciclópeo"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000010",
+      "codigo": "LAD-6H",
+      "nombre": "Ladrillo de 6 huecos",
+      "tipo": "LADRILLO",
+      "unidad": "pieza",
+      "unidadPlural": "piezas",
+      "precioReferencial": 1.3,
+      "proveedorHabitualId": "7b1e5c1a-0001-4c3e-9a10-000000000001",
+      "atributos": [
+        {
+          "nombre": "medidas",
+          "valor": "25 × 15 × 10 cm"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000011",
+      "codigo": "MAD-ENC",
+      "nombre": "Tabla de encofrado de 1\"",
+      "tipo": "MADERA",
+      "unidad": "pie tablar",
+      "unidadPlural": "pies tablares",
+      "precioReferencial": 7.5,
+      "proveedorHabitualId": "7b1e5c1a-0001-4c3e-9a10-000000000001",
+      "atributos": [],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000012",
+      "codigo": "CLA-25",
+      "nombre": "Clavo de 2 1/2\"",
+      "tipo": "OTRO",
+      "unidad": "kg",
+      "unidadPlural": "kg",
+      "precioReferencial": 16,
+      "proveedorHabitualId": "7b1e5c1a-0001-4c3e-9a10-000000000001",
+      "atributos": [],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000013",
+      "codigo": "CER-4545",
+      "nombre": "Cerámica de piso 45 × 45",
+      "tipo": "OTRO",
+      "unidad": "m2",
+      "unidadPlural": "m2",
+      "precioReferencial": 78,
+      "proveedorHabitualId": "7b1e5c1a-0001-4c3e-9a10-000000000001",
+      "atributos": [
+        {
+          "nombre": "tráfico",
+          "valor": "alto"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000014",
+      "codigo": "TUB-PVC4",
+      "nombre": "Tubo PVC sanitario de 4\"",
+      "tipo": "SANITARIO",
+      "unidad": "pieza",
+      "unidadPlural": "piezas",
+      "precioReferencial": 95,
+      "proveedorHabitualId": null,
+      "atributos": [
+        {
+          "nombre": "largo",
+          "valor": "6 m"
+        }
+      ],
+      "activo": true
+    },
+    {
+      "id": "e0000000-0000-4000-8000-000000000015",
+      "codigo": "LAD-18H",
+      "nombre": "Ladrillo de 18 huecos",
+      "tipo": "LADRILLO",
+      "unidad": "pieza",
+      "unidadPlural": "piezas",
+      "precioReferencial": 2.1,
+      "proveedorHabitualId": "7b1e5c1a-0001-4c3e-9a10-000000000001",
+      "atributos": [],
+      "activo": false
+    }
+  ],
+  "obraAcceso": [
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "nombre": "Edificio Residencial Las Palmeras",
+      "residenteId": "a0000000-0000-4000-8000-000000000003",
+      "maestroId": "a0000000-0000-4000-8000-000000000005",
+      "almaceneroId": "a0000000-0000-4000-8000-000000000006",
+      "clienteId": "a0000000-0000-4000-8000-000000000007"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "nombre": "Condominio Las Lomas (12 viviendas)",
+      "residenteId": "a0000000-0000-4000-8000-000000000004",
+      "maestroId": "a0000000-0000-4000-8000-000000000005",
+      "almaceneroId": "a0000000-0000-4000-8000-000000000006",
+      "clienteId": "a0000000-0000-4000-8000-000000000009"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000003",
+      "nombre": "Unidad Educativa Nueva Esperanza",
+      "residenteId": "a0000000-0000-4000-8000-000000000009",
+      "maestroId": "a0000000-0000-4000-8000-000000000005",
+      "almaceneroId": "a0000000-0000-4000-8000-000000000006",
+      "clienteId": "a0000000-0000-4000-8000-000000000007"
+    }
+  ],
+  "stock": [
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "material": "CEM-IP30",
+      "minimo": 150,
+      "cantidadEsperada": 238,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "material": "FIE-12",
+      "minimo": 1000,
+      "cantidadEsperada": 1150,
+      "estadoEsperado": "JUSTO"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "material": "FIE-10",
+      "minimo": 500,
+      "cantidadEsperada": 900,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "material": "ARE-GRU",
+      "minimo": 10,
+      "cantidadEsperada": 25,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "material": "GRA-34",
+      "minimo": 15,
+      "cantidadEsperada": 25,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "material": "LAD-6H",
+      "minimo": 2000,
+      "cantidadEsperada": 2900,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "material": "ARE-FIN",
+      "minimo": 4,
+      "cantidadEsperada": 8,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "material": "CEM-IP30",
+      "minimo": 150,
+      "cantidadEsperada": 25,
+      "estadoEsperado": "BAJO"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "material": "ARE-GRU",
+      "minimo": 8,
+      "cantidadEsperada": 24,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "material": "GRA-34",
+      "minimo": 8,
+      "cantidadEsperada": 9,
+      "estadoEsperado": "JUSTO"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "material": "PIE-MAN",
+      "minimo": 0,
+      "cantidadEsperada": 5,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "material": "FIE-12",
+      "minimo": 400,
+      "cantidadEsperada": 950,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000003",
+      "material": "CEM-IP30",
+      "minimo": 100,
+      "cantidadEsperada": 300,
+      "estadoEsperado": "OK"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000003",
+      "material": "FIE-12",
+      "minimo": 800,
+      "cantidadEsperada": 2000,
+      "estadoEsperado": "OK"
+    }
+  ],
+  "movimientos": [
+    {
+      "id": "f0000000-0000-4000-8000-000000010001",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "CEM-IP30",
+      "cantidad": 900,
+      "partidaId": null,
+      "registradoEn": "M-3/05 10:00",
+      "notaRemision": "NR-10001",
+      "stock": 900
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010002",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "ARE-GRU",
+      "cantidad": 65,
+      "partidaId": null,
+      "registradoEn": "M-3/05 10:00",
+      "notaRemision": "NR-10002",
+      "stock": 65
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010003",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "GRA-34",
+      "cantidad": 100,
+      "partidaId": null,
+      "registradoEn": "M-3/05 10:00",
+      "notaRemision": "NR-10003",
+      "stock": 100
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010004",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "FIE-12",
+      "cantidad": 10000,
+      "partidaId": null,
+      "registradoEn": "M-3/06 10:00",
+      "notaRemision": "NR-10004",
+      "stock": 10000
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010005",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "FIE-12",
+      "cantidad": 9500,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-3/12 10:00",
+      "notaRemision": null,
+      "stock": 500
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010006",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 830,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-3/19 10:00",
+      "notaRemision": null,
+      "stock": 70
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010007",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 59,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-3/19 10:00",
+      "notaRemision": null,
+      "stock": 6
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010008",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 95,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-3/19 10:00",
+      "notaRemision": null,
+      "stock": 5
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010009",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "CEM-IP30",
+      "cantidad": 1100,
+      "partidaId": null,
+      "registradoEn": "M-2/03 10:00",
+      "notaRemision": "NR-10009",
+      "stock": 1170
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010010",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "ARE-GRU",
+      "cantidad": 75,
+      "partidaId": null,
+      "registradoEn": "M-2/03 10:00",
+      "notaRemision": "NR-10010",
+      "stock": 81
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010011",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "GRA-34",
+      "cantidad": 125,
+      "partidaId": null,
+      "registradoEn": "M-2/03 10:00",
+      "notaRemision": "NR-10011",
+      "stock": 130
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010012",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "FIE-12",
+      "cantidad": 11000,
+      "partidaId": null,
+      "registradoEn": "M-2/04 10:00",
+      "notaRemision": "NR-10012",
+      "stock": 11500
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010013",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "FIE-10",
+      "cantidad": 3000,
+      "partidaId": null,
+      "registradoEn": "M-2/04 10:00",
+      "notaRemision": "NR-10013",
+      "stock": 3000
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010014",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 415,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-2/10 10:00",
+      "notaRemision": null,
+      "stock": 755
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010015",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 30,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-2/10 10:00",
+      "notaRemision": null,
+      "stock": 51
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010016",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 47,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-2/10 10:00",
+      "notaRemision": null,
+      "stock": 83
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010017",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "FIE-12",
+      "cantidad": 4750,
+      "partidaId": "b1000000-0000-4000-8000-000000000102",
+      "registradoEn": "M-2/10 10:00",
+      "notaRemision": null,
+      "stock": 6750
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010018",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "FIE-12",
+      "cantidad": 6100,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-2/17 10:00",
+      "notaRemision": null,
+      "stock": 650
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010019",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 380,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-2/20 10:00",
+      "notaRemision": null,
+      "stock": 375
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010020",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 25,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-2/20 10:00",
+      "notaRemision": null,
+      "stock": 26
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010021",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 40,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-2/20 10:00",
+      "notaRemision": null,
+      "stock": 43
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010022",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "FIE-10",
+      "cantidad": 2650,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-2/25 10:00",
+      "notaRemision": null,
+      "stock": 350
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010023",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 320,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-2/26 10:00",
+      "notaRemision": null,
+      "stock": 55
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010024",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 23,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-2/26 10:00",
+      "notaRemision": null,
+      "stock": 3
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010025",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 36,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-2/26 10:00",
+      "notaRemision": null,
+      "stock": 7
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010026",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "CEM-IP30",
+      "cantidad": 1100,
+      "partidaId": null,
+      "registradoEn": "M-1/02 10:00",
+      "notaRemision": "NR-10026",
+      "stock": 1155
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010027",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "ARE-GRU",
+      "cantidad": 80,
+      "partidaId": null,
+      "registradoEn": "M-1/02 10:00",
+      "notaRemision": "NR-10027",
+      "stock": 83
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010028",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "GRA-34",
+      "cantidad": 110,
+      "partidaId": null,
+      "registradoEn": "M-1/02 10:00",
+      "notaRemision": "NR-10028",
+      "stock": 117
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010029",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "FIE-12",
+      "cantidad": 6500,
+      "partidaId": null,
+      "registradoEn": "M-1/03 10:00",
+      "notaRemision": "NR-10029",
+      "stock": 7150
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010030",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "FIE-10",
+      "cantidad": 5000,
+      "partidaId": null,
+      "registradoEn": "M-1/03 10:00",
+      "notaRemision": "NR-10030",
+      "stock": 5350
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010031",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "LAD-6H",
+      "cantidad": 15000,
+      "partidaId": null,
+      "registradoEn": "M-1/04 10:00",
+      "notaRemision": "NR-10031",
+      "stock": 15000
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010032",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "INGRESO",
+      "material": "ARE-FIN",
+      "cantidad": 20,
+      "partidaId": null,
+      "registradoEn": "M-1/04 10:00",
+      "notaRemision": "NR-10032",
+      "stock": 20
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010033",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "FIE-12",
+      "cantidad": 6000,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-1/09 10:00",
+      "notaRemision": null,
+      "stock": 1150
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010034",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 305,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-1/14 10:00",
+      "notaRemision": null,
+      "stock": 850
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010035",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 20,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-1/14 10:00",
+      "notaRemision": null,
+      "stock": 63
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010036",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 32,
+      "partidaId": "b1000000-0000-4000-8000-000000000103",
+      "registradoEn": "M-1/14 10:00",
+      "notaRemision": null,
+      "stock": 85
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010037",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "FIE-10",
+      "cantidad": 4450,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-1/18 10:00",
+      "notaRemision": null,
+      "stock": 900
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010038",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 530,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-1/21 10:00",
+      "notaRemision": null,
+      "stock": 320
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010039",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 38,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-1/21 10:00",
+      "notaRemision": null,
+      "stock": 25
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010040",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 60,
+      "partidaId": "b1000000-0000-4000-8000-000000000104",
+      "registradoEn": "M-1/21 10:00",
+      "notaRemision": null,
+      "stock": 25
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010041",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "LAD-6H",
+      "cantidad": 12100,
+      "partidaId": "b1000000-0000-4000-8000-000000000105",
+      "registradoEn": "M-1/23 10:00",
+      "notaRemision": null,
+      "stock": 2900
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010042",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 82,
+      "partidaId": "b1000000-0000-4000-8000-000000000105",
+      "registradoEn": "M-1/23 10:00",
+      "notaRemision": null,
+      "stock": 238
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000010043",
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "tipo": "SALIDA",
+      "material": "ARE-FIN",
+      "cantidad": 12,
+      "partidaId": "b1000000-0000-4000-8000-000000000105",
+      "registradoEn": "M-1/23 10:00",
+      "notaRemision": null,
+      "stock": 8
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020001",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "CEM-IP30",
+      "cantidad": 1500,
+      "partidaId": null,
+      "registradoEn": "M-2/04 10:00",
+      "notaRemision": "NR-20001",
+      "stock": 1500
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020002",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "ARE-GRU",
+      "cantidad": 120,
+      "partidaId": null,
+      "registradoEn": "M-2/04 10:00",
+      "notaRemision": "NR-20002",
+      "stock": 120
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020003",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "GRA-34",
+      "cantidad": 160,
+      "partidaId": null,
+      "registradoEn": "M-2/04 10:00",
+      "notaRemision": "NR-20003",
+      "stock": 160
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020004",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "PIE-MAN",
+      "cantidad": 150,
+      "partidaId": null,
+      "registradoEn": "M-2/04 10:00",
+      "notaRemision": "NR-20004",
+      "stock": 150
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020005",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "FIE-12",
+      "cantidad": 8000,
+      "partidaId": null,
+      "registradoEn": "M-2/05 10:00",
+      "notaRemision": "NR-20005",
+      "stock": 8000
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020006",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 735,
+      "partidaId": "b1000000-0000-4000-8000-000000000202",
+      "registradoEn": "M-2/11 10:00",
+      "notaRemision": null,
+      "stock": 765
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020007",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 66,
+      "partidaId": "b1000000-0000-4000-8000-000000000202",
+      "registradoEn": "M-2/11 10:00",
+      "notaRemision": null,
+      "stock": 54
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020008",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 80,
+      "partidaId": "b1000000-0000-4000-8000-000000000202",
+      "registradoEn": "M-2/11 10:00",
+      "notaRemision": null,
+      "stock": 80
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020009",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "PIE-MAN",
+      "cantidad": 145,
+      "partidaId": "b1000000-0000-4000-8000-000000000202",
+      "registradoEn": "M-2/11 10:00",
+      "notaRemision": null,
+      "stock": 5
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020010",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "FIE-12",
+      "cantidad": 7700,
+      "partidaId": "b1000000-0000-4000-8000-000000000203",
+      "registradoEn": "M-2/16 10:00",
+      "notaRemision": null,
+      "stock": 300
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020011",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 680,
+      "partidaId": "b1000000-0000-4000-8000-000000000203",
+      "registradoEn": "M-2/22 10:00",
+      "notaRemision": null,
+      "stock": 85
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020012",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 49,
+      "partidaId": "b1000000-0000-4000-8000-000000000203",
+      "registradoEn": "M-2/22 10:00",
+      "notaRemision": null,
+      "stock": 5
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020013",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 77,
+      "partidaId": "b1000000-0000-4000-8000-000000000203",
+      "registradoEn": "M-2/22 10:00",
+      "notaRemision": null,
+      "stock": 3
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020014",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "ARE-GRU",
+      "cantidad": 40,
+      "partidaId": null,
+      "registradoEn": "M-1/03 10:00",
+      "notaRemision": "NR-20014",
+      "stock": 45
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020015",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "GRA-34",
+      "cantidad": 39,
+      "partidaId": null,
+      "registradoEn": "M-1/03 10:00",
+      "notaRemision": "NR-20015",
+      "stock": 42
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020016",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "FIE-12",
+      "cantidad": 5500,
+      "partidaId": null,
+      "registradoEn": "M-1/06 10:00",
+      "notaRemision": "NR-20016",
+      "stock": 5800
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020017",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "FIE-12",
+      "cantidad": 4850,
+      "partidaId": "b1000000-0000-4000-8000-000000000204",
+      "registradoEn": "M-1/08 10:00",
+      "notaRemision": null,
+      "stock": 950
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020018",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 120,
+      "partidaId": "b1000000-0000-4000-8000-000000000204",
+      "registradoEn": "M-1/10 10:00",
+      "notaRemision": null,
+      "stock": -35
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020019",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "INGRESO",
+      "material": "CEM-IP30",
+      "cantidad": 250,
+      "partidaId": null,
+      "registradoEn": "M-1/12 10:00",
+      "notaRemision": "NR-20019",
+      "stock": 215
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020020",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "CEM-IP30",
+      "cantidad": 190,
+      "partidaId": "b1000000-0000-4000-8000-000000000204",
+      "registradoEn": "M-1/18 10:00",
+      "notaRemision": null,
+      "stock": 25
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020021",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "ARE-GRU",
+      "cantidad": 21,
+      "partidaId": "b1000000-0000-4000-8000-000000000204",
+      "registradoEn": "M-1/18 10:00",
+      "notaRemision": null,
+      "stock": 24
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000020022",
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "tipo": "SALIDA",
+      "material": "GRA-34",
+      "cantidad": 33,
+      "partidaId": "b1000000-0000-4000-8000-000000000204",
+      "registradoEn": "M-1/18 10:00",
+      "notaRemision": null,
+      "stock": 9
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000030001",
+      "obraId": "b0000000-0000-4000-8000-000000000003",
+      "tipo": "INGRESO",
+      "material": "CEM-IP30",
+      "cantidad": 300,
+      "partidaId": null,
+      "registradoEn": "D-3 10:00",
+      "notaRemision": "NR-30001",
+      "stock": 300
+    },
+    {
+      "id": "f0000000-0000-4000-8000-000000030002",
+      "obraId": "b0000000-0000-4000-8000-000000000003",
+      "tipo": "INGRESO",
+      "material": "FIE-12",
+      "cantidad": 2000,
+      "partidaId": null,
+      "registradoEn": "D-2 10:00",
+      "notaRemision": "NR-30002",
+      "stock": 2000
+    }
+  ],
+  "cierres": [
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "periodo": "M-3",
+      "planillaId": "d0000000-0000-4000-8000-000000000101",
+      "estado": "CERRADO",
+      "cerradoEn": "D-40 10:00"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000001",
+      "periodo": "M-2",
+      "planillaId": "d0000000-0000-4000-8000-000000000102",
+      "estado": "CERRADO",
+      "cerradoEn": "D-12 10:00"
+    },
+    {
+      "obraId": "b0000000-0000-4000-8000-000000000002",
+      "periodo": "M-2",
+      "planillaId": "d0000000-0000-4000-8000-000000000201",
+      "estado": "CERRADO",
+      "cerradoEn": "D-20 10:00"
+    }
+  ]
+}

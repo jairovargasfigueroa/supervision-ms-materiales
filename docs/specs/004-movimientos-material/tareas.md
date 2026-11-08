@@ -4,8 +4,8 @@ Requisitos y diseño: `docs/specs/004-movimientos-material/` de la carpeta que a
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Esquema `movimiento` (con `supera_stock`) y `cierre_periodo`; índices
-- [ ] `POST /movimientos` en transacción: idempotencia, acceso, periodo en `America/La_Paz`, periodo cerrado, actualización de stock con versión
-- [ ] Outbox `StockBajo` y `MovimientoRegistrado`
-- [ ] `GET /obras/{obraId}/movimientos`
-- [ ] Pruebas de la spec
+- [x] Esquema `movimiento` (con `supera_stock`) y `cierre_periodo`; índices
+- [x] `POST /movimientos` en transacción: idempotencia, acceso, periodo en `America/La_Paz`, periodo cerrado, actualización de stock con versión
+- [x] Outbox `StockBajo` y `MovimientoRegistrado`
+- [x] `GET /obras/{obraId}/movimientos`
+- [x] Pruebas de la spec

@@ -4,4 +4,4 @@ Requisitos y diseño: `docs/specs/006-consultar-obra/` de la carpeta que agrupa 
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] `GET /obras/{obraId}/consumos?periodo=` (solo salidas del periodo) y pruebas
+- [x] `GET /obras/{obraId}/consumos?periodo=` (solo salidas del periodo) y pruebas
