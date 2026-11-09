@@ -99,20 +99,22 @@ export class MovimientoRepositorioMongo implements MovimientoRepositorio {
   }
 
   async resumirSalidas(
-    obraId: string,
+    obraIds: readonly string[],
     periodo: string,
     partidaId?: string,
   ): Promise<ResumenSalidasPartida[]> {
-    // Misma agregación que `sumarSalidas` (006), más los conteos; usa `por_obra_periodo`.
+    if (obraIds.length === 0) return [];
+    // Misma agregación que `sumarSalidas` (006), más los conteos y por obra (lote, 505); usa
+    // `por_obra_periodo` (también con `$in`).
     const filtro: Record<string, unknown> = {
-      obra_id: obraId,
+      obra_id: obraIds.length === 1 ? obraIds[0] : { $in: [...obraIds] },
       periodo,
       tipo: 'SALIDA',
     };
     if (partidaId !== undefined) filtro.partida_id = partidaId;
     const grupos = await this.modelo
       .aggregate<{
-        _id: { partida_id: string; material_id: string };
+        _id: { obra_id: string; partida_id: string; material_id: string };
         cantidad: Types.Decimal128;
         salidas: number;
         superan: number;
@@ -120,16 +122,27 @@ export class MovimientoRepositorioMongo implements MovimientoRepositorio {
         { $match: filtro },
         {
           $group: {
-            _id: { partida_id: '$partida_id', material_id: '$material_id' },
+            _id: {
+              obra_id: '$obra_id',
+              partida_id: '$partida_id',
+              material_id: '$material_id',
+            },
             cantidad: { $sum: '$cantidad' },
             salidas: { $sum: 1 },
             superan: { $sum: { $cond: ['$supera_stock', 1, 0] } },
           },
         },
-        { $sort: { '_id.partida_id': 1, '_id.material_id': 1 } },
+        {
+          $sort: {
+            '_id.obra_id': 1,
+            '_id.partida_id': 1,
+            '_id.material_id': 1,
+          },
+        },
       ])
       .session(sesionActual());
     return grupos.map((grupo) => ({
+      obraId: grupo._id.obra_id,
       partidaId: grupo._id.partida_id,
       materialId: grupo._id.material_id,
       cantidad: redondearCantidad(aNumero(grupo.cantidad)),

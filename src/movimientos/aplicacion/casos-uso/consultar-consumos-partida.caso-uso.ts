@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AccesoObraServicio } from '../../../acceso-obra/aplicacion/acceso-obra.servicio.js';
+import type { ObraAcceso } from '../../../acceso-obra/dominio/obra-acceso.js';
 import {
   MATERIAL_REPOSITORIO,
   type MaterialRepositorio,
@@ -17,7 +18,8 @@ import {
 } from '../puertos/movimiento.repositorio.js';
 
 export interface ConsultaConsumosPartida {
-  obraId: string;
+  /** Sin él, todas las obras que el usuario ve (lote, 505). */
+  obraId?: string;
   /** `AAAA-MM`. */
   periodo: string;
   /** Solo esa partida, si viene. */
@@ -26,24 +28,37 @@ export interface ConsultaConsumosPartida {
   limite: number;
 }
 
-/** Las salidas de una partida y material, con los datos del material del catálogo. */
+/**
+ * Las salidas de una partida y material de una obra, con los datos del material del catálogo y el
+ * nombre de la obra (de `obra_acceso`).
+ */
 export interface FilaConsumoPartida {
   resumen: ResumenSalidasPartida;
   material: Material;
+  obraNombre: string;
 }
 
 export interface ConsumosPartida {
-  /** Hay `cierre_periodo` `CERRADO` para la obra y el periodo (008). */
-  cerrado: boolean;
+  /**
+   * Con `obraId`: hay `cierre_periodo` `CERRADO` para la obra y el periodo (008). En el lote,
+   * `null` (el cierre es por obra).
+   */
+  cerrado: boolean | null;
   filas: FilaConsumoPartida[];
   truncado: boolean;
 }
 
 /**
- * Material usado por partida y material de una obra en un periodo, para la herramienta MCP
- * `consumos_partida` (501): la misma suma de salidas que `GET /obras/{obraId}/consumos` (006),
- * con el número de salidas, cuántas superaron el stock y si el periodo está cerrado. Si el usuario
- * no ve la obra (o no está en `obra_acceso`), `404 OBRA_NO_ENCONTRADA`. Solo lectura.
+ * Material usado por partida y material en un periodo, para la herramienta MCP `consumos_partida`
+ * (501): la misma suma de salidas que `GET /obras/{obraId}/consumos` (006), con el número de
+ * salidas, cuántas superaron el stock y el nombre de la obra.
+ *
+ * - Con `obraId`: esa obra y si el periodo está cerrado. Si el usuario no la ve (o no está en
+ *   `obra_acceso`), `404 OBRA_NO_ENCONTRADA`.
+ * - Sin `obraId` (lote, 505): las obras de `obra_acceso` que el usuario ve (`agente_ia`: todas),
+ *   solo las que tienen salidas en el periodo; `cerrado` es `null`. Nunca lee otras obras.
+ *
+ * Orden por obra, partida y material; recorta a `limite`. Solo lectura.
  */
 @Injectable()
 export class ConsultarConsumosPartidaCasoUso {
@@ -62,10 +77,16 @@ export class ConsultarConsumosPartidaCasoUso {
     usuario: UsuarioAutenticado,
   ): Promise<ConsumosPartida> {
     const { obraId, periodo, partidaId, limite } = consulta;
-    await this.acceso.exigirVer(obraId, usuario);
+    const obras: ObraAcceso[] = obraId
+      ? [await this.acceso.exigirVer(obraId, usuario)]
+      : await this.acceso.listarVisibles(usuario);
+    if (obras.length === 0)
+      return { cerrado: null, filas: [], truncado: false };
+
+    const nombres = new Map(obras.map((obra) => [obra.obraId, obra.nombre]));
     const [resumenes, cerrado] = await Promise.all([
-      this.movimientos.resumirSalidas(obraId, periodo, partidaId),
-      this.cierres.estaCerrado(obraId, periodo),
+      this.movimientos.resumirSalidas([...nombres.keys()], periodo, partidaId),
+      obraId ? this.cierres.estaCerrado(obraId, periodo) : null,
     ]);
     const recortados = resumenes.slice(0, limite);
     const materiales = new Map(
@@ -77,10 +98,13 @@ export class ConsultarConsumosPartidaCasoUso {
     );
     return {
       cerrado,
-      // Los materiales no se borran (003, criterio 5): siempre está en el catálogo.
       filas: recortados.flatMap((resumen) => {
+        // Los materiales no se borran (003, criterio 5): siempre está en el catálogo.
         const material = materiales.get(resumen.materialId);
-        return material ? [{ resumen, material }] : [];
+        const obraNombre = nombres.get(resumen.obraId);
+        return material && obraNombre !== undefined
+          ? [{ resumen, material, obraNombre }]
+          : [];
       }),
       truncado: resumenes.length > limite,
     };
