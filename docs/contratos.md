@@ -105,7 +105,7 @@ Roles: `admin`, `residente`, `gerente`. `[{ "obraId", "materialesBajos": 2 }]` (
 - Van directo a `plataforma.fallidos`: un cuerpo que no es JSON o sin sobre válido (`id`, `tipo`, `version` 1, `datos`), `datos` incompletos y los tipos que todavía no tienen consumidor.
 - En `plataforma.fallidos` el cuerpo es el original sin cambios y los encabezados dicen por qué: `x-error` (texto del error), `x-intentos` (fallos), `x-cola-origen` (`materiales`) y `x-clave-origen` (clave de enrutamiento original).
 
-## Herramientas MCP (capa 5, solo lectura) · 501
+## Herramientas MCP (capa 5, solo lectura) · 501, 505
 
 Ruta: `POST /mcp` (MCP, HTTP «streamable», sin estado, respuestas JSON; versión común 2025-11-25) · Rol: `agente_ia` (*service account* de `ia-agentes`) · Solo lo llama el servicio de IA
 
@@ -123,10 +123,13 @@ Ruta: `POST /mcp` (MCP, HTTP «streamable», sin estado, respuestas JSON; versi�
 - Salida: `{ "filas": [{ "obraId", "obraNombre", "materialId", "codigo", "nombre", "unidad", "cantidad", "minimo", "estado" }], "total", "truncado" }`.
 - `obraNombre` sale de `obra_acceso.nombre`; estado como en `GET /obras/{obraId}/stock`. Orden: `BAJO`, `JUSTO`, `OK`, luego nombre de obra y código del material. `total` = filas que cumplen el filtro (antes de recortar); `truncado` = `total > limite`.
 
-### `consumos_partida {obraId, periodo, partidaId?}`
+### `consumos_partida {obraId?, periodo, partidaId?}` · 501, 505
 
-«Devuelve el material usado (suma de salidas) por partida y material de una obra en un periodo, con las salidas que superaron el stock. Sirve para comparar con lo previsto de avance_obra.»
+«Devuelve el material usado (suma de salidas) por partida y material en un periodo, de una obra o de todas las obras con consumo, con las salidas que superaron el stock. Sirve para comparar con lo previsto de avance_obra.»
 
-- Entrada: `obraId` (uuid, obligatorio), `periodo` (`AAAA-MM`, obligatorio), `partidaId` (uuid, opcional).
-- Salida: `{ "obraId", "periodo", "cerrado", "filas": [{ "partidaId", "materialId", "codigo", "nombre", "unidad", "usado", "salidas", "salidasSuperanStock" }], "truncado" }`.
-- `usado` = suma de salidas (misma agregación que `GET /obras/{obraId}/consumos`); `salidas` = cuántas salidas; `salidasSuperanStock` = cuántas con `supera_stock`. `cerrado` = `cierre_periodo` `CERRADO` para la obra y el periodo. Orden por `partidaId` y `materialId`; máximo 200 filas (`truncado` si hay más).
+- Entrada: `obraId` (uuid, opcional desde la 505; sin él, todas las obras), `periodo` (`AAAA-MM`, obligatorio), `partidaId` (uuid, opcional). En `tools/list`, `required` es solo `["periodo"]`.
+- Salida: `{ "obraId", "periodo", "cerrado", "filas": [{ "obraId", "obraNombre", "partidaId", "materialId", "codigo", "nombre", "unidad", "usado", "salidas", "salidasSuperanStock" }], "truncado" }`.
+- `usado` = suma de salidas (misma agregación que `GET /obras/{obraId}/consumos`); `salidas` = cuántas salidas; `salidasSuperanStock` = cuántas con `supera_stock`. `obraNombre` sale de `obra_acceso.nombre`.
+- **Con `obraId`:** como en la 501 (si la obra no está en `obra_acceso`, `OBRA_NO_ENCONTRADA`); `obraId` es el pedido y `cerrado` = `cierre_periodo` `CERRADO` para la obra y el periodo. Máximo 200 filas.
+- **Sin `obraId` (lote, 505):** filas de todas las obras de `obra_acceso` que el usuario ve (`agente_ia`: todas) con salidas en el periodo; `obraId` y `cerrado` van en `null` (el cierre es por obra). Máximo 500 filas. Sin salidas en el periodo, `filas: []`.
+- Orden por `obraId`, `partidaId` y `materialId`; `truncado` si hay más filas que el máximo.
