@@ -4,12 +4,18 @@ import {
 } from '@modelcontextprotocol/server';
 import { Logger } from '@nestjs/common';
 import { z } from 'zod';
+import { Material } from '../../catalogo/dominio/material.js';
 import { ReglaNegocioError } from '../../compartido/dominio/regla-negocio.error.js';
+import type {
+  ConsultarConsumosPartidaCasoUso,
+  FilaConsumoPartida,
+} from '../../movimientos/aplicacion/casos-uso/consultar-consumos-partida.caso-uso.js';
 import {
   type ContextoMcp,
   type HerramientaMcp,
   registrarHerramienta,
 } from './herramienta.js';
+import { ConsumosPartidaHerramienta } from './herramientas/consumos-partida.herramienta.js';
 import { crearServidorMcp } from './servidor-mcp.js';
 
 const contexto: ContextoMcp = {
@@ -41,8 +47,12 @@ function herramienta(
   };
 }
 
-/** Llama a la herramienta por el transporte sin estado, como lo haría `/mcp`. */
-async function llamar(servidor: McpServer, argumentos: unknown) {
+/** Una petición JSON-RPC por el transporte sin estado, como lo haría `/mcp`. */
+async function rpc(
+  servidor: McpServer,
+  method: string,
+  params: Record<string, unknown> = {},
+) {
   const transporte = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
@@ -56,15 +66,23 @@ async function llamar(servidor: McpServer, argumentos: unknown) {
         'content-type': 'application/json',
         'mcp-protocol-version': '2025-11-25',
       },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'tools/call',
-        params: { name: 'prueba', arguments: argumentos },
-      }),
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
     }),
   );
-  const cuerpo = (await respuesta.json()) as { result: any };
+  return (await respuesta.json()) as { result: any; error?: unknown };
+}
+
+/** Llama a la herramienta (`prueba` si no se dice otra). */
+async function llamar(
+  servidor: McpServer,
+  argumentos: unknown,
+  nombre = 'prueba',
+) {
+  const cuerpo = await rpc(servidor, 'tools/call', {
+    name: nombre,
+    arguments: argumentos,
+  });
+  expect(cuerpo.error).toBeUndefined();
   return cuerpo.result as {
     isError?: boolean;
     content: { text: string }[];
@@ -179,5 +197,140 @@ describe('registrarHerramienta (501)', () => {
     registrarHerramienta(servidor, h, contexto, 20);
     const resultado = await llamar(servidor, { n: 1 });
     expect(error(resultado).codigo).toBe('ERROR_INTERNO');
+  });
+});
+
+describe('consumos_partida con obraId opcional (505)', () => {
+  const OBRA = 'b0000000-0000-4000-8000-000000000001';
+  const PARTIDA = 'c0000000-0000-4000-8000-000000000001';
+  const cemento = new Material('cem', {
+    codigo: 'CEM-IP30',
+    nombre: 'Cemento IP-30',
+    tipo: 'CEMENTO',
+    unidad: 'bolsa',
+    unidadPlural: 'bolsas',
+    precioReferencial: 62,
+    activo: true,
+    atributos: [],
+  });
+  const fila: FilaConsumoPartida = {
+    resumen: {
+      obraId: OBRA,
+      partidaId: PARTIDA,
+      materialId: 'cem',
+      cantidad: 14.5,
+      salidas: 2,
+      salidasSuperanStock: 1,
+    },
+    material: cemento,
+    obraNombre: 'Edificio Las Palmas',
+  };
+  const filaSalida = {
+    obraId: OBRA,
+    obraNombre: 'Edificio Las Palmas',
+    partidaId: PARTIDA,
+    materialId: 'cem',
+    codigo: 'CEM-IP30',
+    nombre: 'Cemento IP-30',
+    unidad: 'bolsa',
+    usado: 14.5,
+    salidas: 2,
+    salidasSuperanStock: 1,
+  };
+
+  let ejecutar: ReturnType<typeof vi.fn>;
+  let servidor: McpServer;
+
+  beforeEach(() => {
+    vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    ejecutar = vi.fn();
+    const caso = { ejecutar } as unknown as ConsultarConsumosPartidaCasoUso;
+    servidor = crearServidorMcp(
+      [new ConsumosPartidaHerramienta(caso) as HerramientaMcp],
+      contexto,
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('tools/list: solo periodo es obligatorio; obraId y cerrado pueden ser null en la salida', async () => {
+    const { result } = await rpc(servidor, 'tools/list');
+    const [consumos] = result.tools as Record<string, any>[];
+    expect(consumos.name).toBe('consumos_partida');
+    expect(consumos.inputSchema.required).toEqual(['periodo']);
+    expect(Object.keys(consumos.inputSchema.properties).sort()).toEqual([
+      'obraId',
+      'partidaId',
+      'periodo',
+    ]);
+    expect(
+      Object.keys(consumos.outputSchema.properties.filas.items.properties),
+    ).toEqual(Object.keys(filaSalida));
+    expect(JSON.stringify(consumos.outputSchema.properties.obraId)).toContain(
+      '"null"',
+    );
+    expect(JSON.stringify(consumos.outputSchema.properties.cerrado)).toContain(
+      '"null"',
+    );
+  });
+
+  it('sin obraId: pide el lote (500 filas) y responde obraId y cerrado en null', async () => {
+    ejecutar.mockResolvedValue({
+      cerrado: null,
+      filas: [fila],
+      truncado: true,
+    });
+    const resultado = await llamar(
+      servidor,
+      { periodo: '2026-09' },
+      'consumos_partida',
+    );
+    expect(ejecutar).toHaveBeenCalledWith(
+      { periodo: '2026-09', limite: 500 },
+      contexto.usuario,
+    );
+    expect(resultado.isError).toBeFalsy();
+    expect(resultado.structuredContent).toEqual({
+      obraId: null,
+      periodo: '2026-09',
+      cerrado: null,
+      filas: [filaSalida],
+      truncado: true,
+    });
+  });
+
+  it('con obraId: como en la 501 (200 filas, cerrado) y las filas con obraId y obraNombre', async () => {
+    ejecutar.mockResolvedValue({
+      cerrado: true,
+      filas: [fila],
+      truncado: false,
+    });
+    const resultado = await llamar(
+      servidor,
+      { obraId: OBRA, periodo: '2026-08', partidaId: PARTIDA },
+      'consumos_partida',
+    );
+    expect(ejecutar).toHaveBeenCalledWith(
+      { obraId: OBRA, periodo: '2026-08', partidaId: PARTIDA, limite: 200 },
+      contexto.usuario,
+    );
+    expect(resultado.structuredContent).toEqual({
+      obraId: OBRA,
+      periodo: '2026-08',
+      cerrado: true,
+      filas: [filaSalida],
+      truncado: false,
+    });
+  });
+
+  it.each([
+    ['sin periodo', {}],
+    ['obraId null', { obraId: null, periodo: '2026-09' }],
+  ])('%s: ARGUMENTO_INVALIDO sin consultar', async (_caso, argumentos) => {
+    const resultado = await llamar(servidor, argumentos, 'consumos_partida');
+    expect(error(resultado).codigo).toBe('ARGUMENTO_INVALIDO');
+    expect(ejecutar).not.toHaveBeenCalled();
   });
 });

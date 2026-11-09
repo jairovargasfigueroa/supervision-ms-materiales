@@ -444,10 +444,8 @@ describe('Servidor MCP /mcp (e2e)', () => {
       );
 
       const consumos = porNombre.consumos_partida;
-      expect([...consumos.inputSchema.required].sort()).toEqual([
-        'obraId',
-        'periodo',
-      ]);
+      // 505: obraId opcional (sin él, el lote de todas las obras).
+      expect(consumos.inputSchema.required).toEqual(['periodo']);
       expect(Object.keys(consumos.inputSchema.properties).sort()).toEqual([
         'obraId',
         'partidaId',
@@ -467,6 +465,8 @@ describe('Servidor MCP /mcp (e2e)', () => {
         ).sort(),
       ).toEqual(
         [
+          'obraId',
+          'obraNombre',
           'partidaId',
           'materialId',
           'codigo',
@@ -532,7 +532,7 @@ describe('Servidor MCP /mcp (e2e)', () => {
       ['stock_obra', { campoDeMas: true }],
       ['consumos_partida', { obraId: obra(1), periodo: '2027-13' }],
       ['consumos_partida', { obraId: obra(1) }],
-      ['consumos_partida', { periodo: '2026-09' }],
+      ['consumos_partida', {}],
       ['consumos_partida', { obraId: "x' OR 1=1", periodo: '2026-09' }],
       [
         'consumos_partida',

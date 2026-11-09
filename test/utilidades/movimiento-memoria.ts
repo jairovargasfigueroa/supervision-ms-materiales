@@ -80,27 +80,31 @@ export class MovimientoRepositorioMemoria implements MovimientoRepositorio {
   }
 
   async resumirSalidas(
-    obraId: string,
+    obraIds: readonly string[],
     periodo: string,
     partidaId?: string,
   ): Promise<ResumenSalidasPartida[]> {
-    const sumas = await this.sumarSalidas(obraId, periodo);
-    const salidas = [...this.movimientos.values()].filter(
-      (m) =>
-        m.obraId === obraId && m.periodo === periodo && m.tipo === 'SALIDA',
-    );
-    return sumas
-      .filter((s) => partidaId === undefined || s.partidaId === partidaId)
-      .map((s) => {
+    const resumenes: ResumenSalidasPartida[] = [];
+    for (const obraId of [...new Set(obraIds)].sort()) {
+      const sumas = await this.sumarSalidas(obraId, periodo);
+      const salidas = [...this.movimientos.values()].filter(
+        (m) =>
+          m.obraId === obraId && m.periodo === periodo && m.tipo === 'SALIDA',
+      );
+      for (const s of sumas) {
+        if (partidaId !== undefined && s.partidaId !== partidaId) continue;
         const delGrupo = salidas.filter(
           (m) => m.partidaId === s.partidaId && m.materialId === s.materialId,
         );
-        return {
+        resumenes.push({
+          obraId,
           ...s,
           salidas: delGrupo.length,
           salidasSuperanStock: delGrupo.filter((m) => m.superaStock).length,
-        };
-      });
+        });
+      }
+    }
+    return resumenes;
   }
 }
 
