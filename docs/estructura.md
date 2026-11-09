@@ -133,7 +133,7 @@ test/
   stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
   cierres.e2e-spec.ts              # CerrarConsumos y ReabrirConsumos (008): cierre_periodo, movimientos marcados, outbox, idempotencia, otra planilla, fallidos
   semilla.e2e-spec.ts              # semilla (011) con D = 2026-10-28: dos cargas sin duplicar, stock y estados, supera_stock, cerrado, consumos, /stock/resumen, vaciar, guarda; SEMILLA_DEMO=si (601): carga en producción, nunca vacía
-  mcp.e2e-spec.ts                  # /mcp (501): 401/403/200, 405, tools/list exacto, cifras iguales al REST, truncado, argumentos inválidos, obra inexistente, solo lectura
+  mcp.e2e-spec.ts                  # /mcp (501): 401/403/200, 405, tools/list exacto, cifras iguales al REST, truncado, argumentos inválidos, obra inexistente, solo lectura; consumos_partida sin obraId (lote, 505)
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 

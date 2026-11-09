@@ -247,6 +247,21 @@ describe('Servidor MCP /mcp (e2e)', () => {
   });
 
   describe('consumos_partida', () => {
+    /** Nombre de la obra en `obra_acceso`, para comparar `obraNombre`. */
+    const nombreDe = async (obraId: string) =>
+      (
+        await prueba.conexion
+          .collection('obra_acceso')
+          .findOne({ _id: obraId as never })
+      )?.nombre as string;
+    /** Filas como las de `GET /obras/{obraId}/consumos` (006). */
+    const comoRest = (filas: any[]) =>
+      filas.map((f: any) => ({
+        partidaId: f.partidaId,
+        materialId: f.materialId,
+        cantidad: f.usado,
+      }));
+
     it('usado igual a GET /obras/{obraId}/consumos, con salidas contadas en la colección', async () => {
       for (const [o, periodo] of [
         [1, '2026-09'],
@@ -262,13 +277,13 @@ describe('Servidor MCP /mcp (e2e)', () => {
         );
         expect(rest.status).toBe(200);
         expect(rest.body.length).toBeGreaterThan(0);
-        expect(
-          salida.filas.map((f: any) => ({
-            partidaId: f.partidaId,
-            materialId: f.materialId,
-            cantidad: f.usado,
-          })),
-        ).toEqual(rest.body);
+        expect(comoRest(salida.filas)).toEqual(rest.body);
+        // 505: cada fila con su obra.
+        const nombre = await nombreDe(obra(o));
+        expect(nombre).toBeTruthy();
+        for (const fila of salida.filas) {
+          expect(fila).toMatchObject({ obraId: obra(o), obraNombre: nombre });
+        }
         for (const fila of salida.filas) {
           const filtro = {
             obra_id: obra(o),
@@ -339,36 +354,118 @@ describe('Servidor MCP /mcp (e2e)', () => {
       });
     });
 
-    it('más de 200 grupos: devuelve 200 y truncado', async () => {
+    it('sin obraId (lote, 505): las obras con consumo en el periodo, cada una igual al REST de su obra; obraId y cerrado en null', async () => {
+      const obras = await prueba.conexion
+        .collection('obra_acceso')
+        .find({})
+        .toArray();
+      // 2026-08 está cerrado para la obra 1 (semilla): en el lote, `cerrado` es null igual.
+      for (const periodo of ['2026-08', '2026-09']) {
+        const salida = await salidaDe('consumos_partida', { periodo });
+        expect(salida).toMatchObject({
+          obraId: null,
+          periodo,
+          cerrado: null,
+          truncado: false,
+        });
+        const conConsumo = new Set<string>();
+        for (const { _id, nombre } of obras) {
+          const obraId = String(_id);
+          const rest = await getRest(
+            `/obras/${obraId}/consumos?periodo=${periodo}`,
+          );
+          expect(rest.status).toBe(200);
+          const deLaObra = salida.filas.filter((f: any) => f.obraId === obraId);
+          expect(comoRest(deLaObra)).toEqual(rest.body);
+          for (const fila of deLaObra) expect(fila.obraNombre).toBe(nombre);
+          if (rest.body.length > 0) conConsumo.add(obraId);
+        }
+        // Ninguna fila de una obra sin consumo ni fuera de obra_acceso.
+        expect(new Set(salida.filas.map((f: any) => f.obraId))).toEqual(
+          conConsumo,
+        );
+        // Orden por obra, partida y material.
+        const claves = salida.filas.map((f: any) =>
+          [f.obraId, f.partidaId, f.materialId].join('|'),
+        );
+        expect(claves).toEqual([...claves].sort());
+      }
+      // En 2026-09 hay consumo en más de una obra (semilla).
+      const septiembre = await salidaDe('consumos_partida', {
+        periodo: '2026-09',
+      });
+      expect(
+        new Set(septiembre.filas.map((f: any) => f.obraId)).size,
+      ).toBeGreaterThan(1);
+    });
+
+    it('sin obraId con partidaId: solo esa partida', async () => {
+      const superada = await prueba.conexion
+        .collection('movimiento')
+        .findOne({ supera_stock: true });
+      const salida = await salidaDe('consumos_partida', {
+        periodo: superada!.periodo,
+        partidaId: superada!.partida_id,
+      });
+      expect(salida.filas.length).toBeGreaterThan(0);
+      for (const fila of salida.filas) {
+        expect(fila).toMatchObject({
+          obraId: superada!.obra_id,
+          partidaId: superada!.partida_id,
+        });
+      }
+    });
+
+    it('sin obraId en un periodo sin salidas: filas vacías', async () => {
+      expect(
+        await salidaDe('consumos_partida', { periodo: '2020-01' }),
+      ).toEqual({
+        obraId: null,
+        periodo: '2020-01',
+        cerrado: null,
+        filas: [],
+        truncado: false,
+      });
+    });
+
+    it('más grupos que el máximo: 200 con obraId, 500 sin obraId, con truncado', async () => {
       const movimientos = prueba.conexion.collection('movimiento');
       const material = await prueba.conexion.collection('material').findOne();
       const periodo = '2030-01';
-      await movimientos.insertMany(
-        Array.from({ length: 201 }, (_, i) => ({
-          _id: crypto.randomUUID() as never,
-          obra_id: obra(3),
-          material_id: material!._id,
-          tipo: 'SALIDA',
-          cantidad: Types.Decimal128.fromString('1'),
-          partida_id: `c0000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
-          orden_compra_id: null,
-          periodo,
-          cerrado: false,
-          supera_stock: false,
-          registrado_por: 'almacenero-prueba',
-          registrado_en: new Date('2030-01-15T12:00:00Z'),
-          nota_remision: null,
-        })),
-      );
+      const salidaDePrueba = (o: number, i: number) => ({
+        _id: crypto.randomUUID() as never,
+        obra_id: obra(o),
+        material_id: material!._id,
+        tipo: 'SALIDA',
+        cantidad: Types.Decimal128.fromString('1'),
+        partida_id: `c0000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+        orden_compra_id: null,
+        periodo,
+        cerrado: false,
+        supera_stock: false,
+        registrado_por: 'almacenero-prueba',
+        registrado_en: new Date('2030-01-15T12:00:00Z'),
+        nota_remision: null,
+      });
+      // 501 grupos en la obra 3 y uno en la obra 1: 502 en el lote.
+      await movimientos.insertMany([
+        ...Array.from({ length: 501 }, (_, i) => salidaDePrueba(3, i)),
+        salidaDePrueba(1, 0),
+      ]);
       try {
-        const salida = await salidaDe('consumos_partida', {
+        const deUna = await salidaDe('consumos_partida', {
           obraId: obra(3),
           periodo,
         });
-        expect(salida.filas).toHaveLength(200);
-        expect(salida.truncado).toBe(true);
+        expect(deUna.filas).toHaveLength(200);
+        expect(deUna.truncado).toBe(true);
+        const lote = await salidaDe('consumos_partida', { periodo });
+        expect(lote.filas).toHaveLength(500);
+        expect(lote.truncado).toBe(true);
+        expect(lote.filas[0].obraId).toBe(obra(1));
+        expect(lote.filas[1].obraId).toBe(obra(3));
       } finally {
-        await movimientos.deleteMany({ obra_id: obra(3), periodo });
+        await movimientos.deleteMany({ periodo });
       }
     });
   });
@@ -451,6 +548,7 @@ describe('Servidor MCP /mcp (e2e)', () => {
         'partidaId',
         'periodo',
       ]);
+      expect(consumos.inputSchema.properties.obraId.format).toBe('uuid');
       expect(consumos.inputSchema.properties.periodo.pattern).toBeDefined();
       expect(Object.keys(consumos.outputSchema.properties).sort()).toEqual([
         'cerrado',
@@ -533,6 +631,9 @@ describe('Servidor MCP /mcp (e2e)', () => {
       ['consumos_partida', { obraId: obra(1), periodo: '2027-13' }],
       ['consumos_partida', { obraId: obra(1) }],
       ['consumos_partida', {}],
+      ['consumos_partida', { periodo: '2027-13' }],
+      ['consumos_partida', { obraId: null, periodo: '2026-09' }],
+      ['consumos_partida', { periodo: '2026-09', partidaId: 'p-1' }],
       ['consumos_partida', { obraId: "x' OR 1=1", periodo: '2026-09' }],
       [
         'consumos_partida',
@@ -630,6 +731,7 @@ describe('Servidor MCP /mcp (e2e)', () => {
       for (const o of [1, 2, 3]) {
         await llamar('consumos_partida', { obraId: obra(o), periodo });
       }
+      await llamar('consumos_partida', { periodo });
     }
     await llamar('consumos_partida', {
       obraId: OBRA_INEXISTENTE,
