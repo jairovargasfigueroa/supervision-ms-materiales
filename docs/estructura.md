@@ -80,14 +80,15 @@ src/
     cierres.module.ts
   movimientos/                     # ingresos y salidas (movimiento), 004
     dominio/        movimiento.ts (Movimiento, TipoMovimiento, NotaRemision, ajusteDeStock, superaElStock, periodoCerrado, datosMovimientoRegistrado),
-                    consumo.ts (ConsumoPartida: suma de salidas por partida y material, 006)
+                    consumo.ts (ConsumoPartida: suma de salidas por partida y material, 006; ResumenSalidasPartida: con obraId, número de salidas y las que superaron el stock, 501 y 505)
     aplicacion/
-      puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe; ORDENES_MOVIMIENTO; sumarSalidas)
+      puertos/      movimiento.repositorio.ts (interfaz + token; MovimientoRepetidoError si el id ya existe; ORDENES_MOVIMIENTO; sumarSalidas; resumirSalidas de una obra o un lote de obras)
       casos-uso/    registrar-movimiento.caso-uso.ts (transacción, idempotencia, reintento si el stock choca, outbox StockBajo y MovimientoRegistrado),
-                    listar-movimientos.caso-uso.ts (paginado, exigirVer), consultar-consumos.caso-uso.ts (006, exigirVer)
+                    listar-movimientos.caso-uso.ts (paginado, exigirVer), consultar-consumos.caso-uso.ts (006, exigirVer),
+                    consultar-consumos-partida.caso-uso.ts (consumos_partida: con obraId, exigirVer y cerrado; sin obraId, listarVisibles y cerrado null, 505)
     infraestructura/
       movimiento.schema.ts (supera_stock, cerrado; índices por obra y periodo, material, partida y periodo),
-      movimiento.repositorio.mongo.ts (sumarSalidas: agregación $match obra + periodo + SALIDA, $group por partida y material)
+      movimiento.repositorio.mongo.ts (sumarSalidas: agregación $match obra + periodo + SALIDA, $group por partida y material; resumirSalidas: $match obra o $in de obras + periodo + SALIDA, $group por obra, partida y material)
     presentacion/
       movimientos.controller.ts (POST /movimientos: 201 o 200 si es repetido; GET /obras/{obraId}/movimientos; GET /obras/{obraId}/consumos),
       dto/registrar-movimiento.dto.ts, dto/movimiento-registrado.respuesta.ts, dto/listar-movimientos.dto.ts, dto/movimiento.respuesta.ts,
@@ -132,7 +133,7 @@ test/
   stock-resumen.e2e-spec.ts        # GET /stock/resumen (009): materiales BAJO por obra, obras no visibles omitidas, 400 por obraIds, 403 por rol
   cierres.e2e-spec.ts              # CerrarConsumos y ReabrirConsumos (008): cierre_periodo, movimientos marcados, outbox, idempotencia, otra planilla, fallidos
   semilla.e2e-spec.ts              # semilla (011) con D = 2026-10-28: dos cargas sin duplicar, stock y estados, supera_stock, cerrado, consumos, /stock/resumen, vaciar, guarda; SEMILLA_DEMO=si (601): carga en producción, nunca vacía
-  mcp.e2e-spec.ts                  # /mcp (501): 401/403/200, 405, tools/list exacto, cifras iguales al REST, truncado, argumentos inválidos, obra inexistente, solo lectura
+  mcp.e2e-spec.ts                  # /mcp (501): 401/403/200, 405, tools/list exacto, cifras iguales al REST, truncado, argumentos inválidos, obra inexistente, solo lectura; consumos_partida sin obraId (lote, 505)
 src/**/*.spec.ts                   # unitarias junto al archivo
 ```
 

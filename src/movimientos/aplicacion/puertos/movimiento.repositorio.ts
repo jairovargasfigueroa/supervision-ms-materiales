@@ -46,11 +46,12 @@ export interface MovimientoRepositorio {
    */
   sumarSalidas(obraId: string, periodo: string): Promise<ConsumoPartida[]>;
   /**
-   * Como `sumarSalidas`, con el número de salidas y cuántas superaron el stock (501); solo de
-   * `partidaId` si viene. Mismo orden. Solo lectura.
+   * Como `sumarSalidas`, con el número de salidas y cuántas superaron el stock (501), de las obras
+   * pedidas (una o un lote, 505); solo de `partidaId` si viene. Ordenado por `obraId`, `partidaId`
+   * y `materialId`. Solo lectura.
    */
   resumirSalidas(
-    obraId: string,
+    obraIds: readonly string[],
     periodo: string,
     partidaId?: string,
   ): Promise<ResumenSalidasPartida[]>;
