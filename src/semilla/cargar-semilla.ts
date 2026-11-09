@@ -16,8 +16,33 @@ import {
   StockObraDocumento,
 } from '../stock/infraestructura/stock-obra.schema.js';
 import { leerDatosSemilla, type DatosSemilla } from './datos-semilla.js';
+import historia from './materiales-historia.json' with { type: 'json' };
 import json from './materiales.json' with { type: 'json' };
 import { prepararSemilla, type SemillaPreparada } from './preparar-semilla.js';
+
+/** Listas que suma la historia de demostración (603) a las de la 011. */
+const LISTAS_HISTORIA = [
+  'obraAcceso',
+  'stock',
+  'movimientos',
+  'cierres',
+] as const;
+
+/**
+ * Los datos de la semilla sin validar: los de la 011 (`materiales.json`) y, con `conHistoria`
+ * (603, `SEMILLA_HISTORIA=si`), las listas de `materiales-historia.json` (obras 4 a 6, generado
+ * por `infra/semilla/historia/generar.mjs`) agregadas a las suyas. El catálogo es el de la 011.
+ */
+export function datosDeLaSemilla(conHistoria: boolean): unknown {
+  if (!conHistoria) return json;
+  const base = json as unknown as Record<string, unknown[]>;
+  const extra = historia as unknown as Record<string, unknown[]>;
+  const unidos: Record<string, unknown> = { ...base };
+  for (const clave of LISTAS_HISTORIA) {
+    unidos[clave] = [...(base[clave] ?? []), ...(extra[clave] ?? [])];
+  }
+  return unidos;
+}
 
 /** Colecciones que carga la semilla, en el orden del resumen. */
 export const COLECCIONES_SEMILLA = [

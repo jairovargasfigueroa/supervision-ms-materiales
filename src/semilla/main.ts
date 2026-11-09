@@ -1,7 +1,12 @@
 import { ConsoleLogger, type INestApplicationContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { CargarSemilla, COLECCIONES_SEMILLA } from './cargar-semilla.js';
+import {
+  CargarSemilla,
+  COLECCIONES_SEMILLA,
+  datosDeLaSemilla,
+} from './cargar-semilla.js';
+import { leerDatosSemilla } from './datos-semilla.js';
 import { fechaDeCarga } from './fecha-relativa.js';
 import type { ModoSemilla } from './guarda.js';
 import { SemillaModule } from './semilla.module.js';
@@ -32,7 +37,17 @@ async function cargar(contexto: INestApplicationContext): Promise<void> {
   const d = fechaDeCarga(
     contexto.get(ConfigService).get<string>('SEMILLA_FECHA'),
   );
-  const resumen = await contexto.get(CargarSemilla).ejecutar(d);
+  // 603: con SEMILLA_HISTORIA=si se suma la historia de demostración (obras 4 a 6)
+  const conHistoria =
+    contexto
+      .get(ConfigService)
+      .get<string>('SEMILLA_HISTORIA')
+      ?.trim()
+      .toLowerCase() === 'si';
+  const resumen = await contexto
+    .get(CargarSemilla)
+    .ejecutar(d, leerDatosSemilla(datosDeLaSemilla(conHistoria)));
+  if (conHistoria) registro.log('Con la historia de demostración (603)');
   registro.log(`Materiales cargado con D = ${resumen.fecha}`);
   for (const coleccion of COLECCIONES_SEMILLA) {
     registro.log(

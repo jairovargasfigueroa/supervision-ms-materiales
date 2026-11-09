@@ -1,5 +1,27 @@
+import { datosDeLaSemilla } from './cargar-semilla.js';
 import { DatosSemillaError, leerDatosSemilla } from './datos-semilla.js';
 import json from './materiales.json' with { type: 'json' };
+import { prepararSemilla } from './preparar-semilla.js';
+
+describe('603: con la historia de demostración (materiales-historia.json)', () => {
+  const datos = leerDatosSemilla(datosDeLaSemilla(true));
+
+  it('suma las obras 4 a 6 a las de la 011 y todo pasa las verificaciones de la carga', () => {
+    expect(datos.materiales).toHaveLength(15);
+    expect(datos.obraAcceso).toHaveLength(6);
+    expect(datos.movimientos.length).toBeGreaterThan(1000);
+    expect(new Set(datos.movimientos.map((m) => m.id)).size).toBe(
+      datos.movimientos.length,
+    );
+    // Stock fila por fila, estado final y cierres: si algo no cuadra, lanza SemillaInvalidaError
+    const semilla = prepararSemilla(datos, '2026-11-09');
+    expect(semilla.cierres).toHaveLength(20);
+  });
+
+  it('sin la historia, los datos son exactamente los de la 011', () => {
+    expect(datosDeLaSemilla(false)).toBe(json);
+  });
+});
 
 describe('materiales.json (docs/datos-prueba.md, secciones 5, 6 y 9)', () => {
   const datos = leerDatosSemilla(json);
